@@ -189,6 +189,15 @@ detail 可能是字符串，也可能是字段错误数组。数组项包含 loc
 
 [测试记录](BACKEND_TEST_REPORT.md)给出已验证的边界。完整课程演示仍需甲、丙、丁的后续功能和集成。
 
+重复保存的实现可沿下面这条链讲解：
+
+1. [ExpenseCreate](../backend/app/schemas.py)验证 request_id 为可选 UUID v4；旧调用保持兼容。
+2. [transaction](../backend/app/database.py)在查询请求记录之前取得 SQLite 写锁，两个并发请求不能同时把同一编号判断为未使用。
+3. [create_expense 与 creation_fingerprint](../backend/app/services/expense.py)先验证成员权限，再按活动、记录者和编号查已有结果；输入归一化后比较摘要，防止同号异内容。
+4. [ExpenseRequest](../backend/app/models.py)的唯一约束提供数据库级保护；新费用、分摊、请求登记和历史一起提交或回滚。
+5. 重试已成功的请求返回现有费用的当前版本；若费用已删除则拒绝，避免误恢复。封账后的重试只读，不创建新费用。
+6. [请求重试测试](../backend/tests/test_expense_requests.py)验证并发、失败回滚、重建应用、删除和封账边界；[迁移测试](../backend/tests/test_request_migration.py)验证旧数据保留及健康检查。
+
 ## 提交规则
 
 每新增一项功能逻辑，完成必要测试后立即建立一次有明确含义的 commit，并推送当前功能分支，不积压到全部功能结束。修复和测试说明可单独提交；不造空提交或修改历史日期。PR 经同伴检查后再合并，保留真实开发记录。
