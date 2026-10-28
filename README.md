@@ -13,6 +13,7 @@
 - [后端交接说明](docs/BACKEND_HANDOFF.md)
 - [后端测试记录](docs/BACKEND_TEST_REPORT.md)
 - [结算后端交接说明](docs/SETTLEMENT_HANDOFF.md)
+- [结算后端测试记录](docs/SETTLEMENT_TEST_REPORT.md)
 
 ## 开发计划
 
