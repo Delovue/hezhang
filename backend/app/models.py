@@ -19,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 MAX_CENTS = 9_007_199_254_740_991
+MAX_IDENTIFIER = 9_007_199_254_740_991
 
 
 class ActivityStatus(StrEnum):

@@ -1,10 +1,10 @@
 from datetime import date
-from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
+from app.api.parameters import Limit, Offset, OptionalQueryId, QueryId, ResourceId
 from app.models import Expense
 from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
 from app.services.activity import require_activity
@@ -19,21 +19,21 @@ router = APIRouter(prefix="/activities/{activity_id}/expenses", tags=["费用"])
 
 
 @router.post("", response_model=ExpenseRead, status_code=201)
-def create(activity_id: int, data: ExpenseCreate, session: Database, user: CurrentUser):
+def create(activity_id: ResourceId, data: ExpenseCreate, session: Database, user: CurrentUser):
     return create_expense(session, activity_id, user, data)
 
 
 @router.get("", response_model=list[ExpenseRead])
 def list_expenses(
-    activity_id: int,
+    activity_id: ResourceId,
     session: Database,
     user: CurrentUser,
     category: str | None = None,
-    payer_member_id: Annotated[int | None, Query(gt=0)] = None,
+    payer_member_id: OptionalQueryId = None,
     start_date: date | None = None,
     end_date: date | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Limit = 50,
+    offset: Offset = 0,
 ):
     require_activity(session, activity_id, user.id)
     if start_date and end_date and start_date > end_date:
@@ -53,15 +53,15 @@ def list_expenses(
 
 
 @router.get("/{expense_id}", response_model=ExpenseRead)
-def detail(activity_id: int, expense_id: int, session: Database, user: CurrentUser):
+def detail(activity_id: ResourceId, expense_id: ResourceId, session: Database, user: CurrentUser):
     require_activity(session, activity_id, user.id)
     return require_expense(session, activity_id, expense_id)
 
 
 @router.patch("/{expense_id}", response_model=ExpenseRead)
 def update(
-    activity_id: int,
-    expense_id: int,
+    activity_id: ResourceId,
+    expense_id: ResourceId,
     data: ExpensePatch,
     session: Database,
     user: CurrentUser,
@@ -71,11 +71,11 @@ def update(
 
 @router.delete("/{expense_id}", status_code=204)
 def delete(
-    activity_id: int,
-    expense_id: int,
+    activity_id: ResourceId,
+    expense_id: ResourceId,
     session: Database,
     user: CurrentUser,
-    version: Annotated[int, Query(ge=1)],
+    version: QueryId,
 ):
     delete_expense(session, activity_id, expense_id, user, version)
     return Response(status_code=204)

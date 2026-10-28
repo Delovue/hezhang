@@ -1,9 +1,8 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
+from app.api.parameters import Limit, Offset, ResourceId
 from app.models import Activity, AuditLog, Membership
 from app.schemas import (
     ActivityCreate,
@@ -23,8 +22,6 @@ from app.services.activity import (
 )
 
 router = APIRouter(prefix="/activities", tags=["活动与成员"])
-Limit = Annotated[int, Query(ge=1, le=100)]
-Offset = Annotated[int, Query(ge=0)]
 
 
 @router.post("", response_model=ActivityRead, status_code=201)
@@ -56,23 +53,23 @@ def join(data: JoinActivity, session: Database, user: CurrentUser):
 
 
 @router.get("/{activity_id}", response_model=ActivityRead)
-def detail(activity_id: int, session: Database, user: CurrentUser):
+def detail(activity_id: ResourceId, session: Database, user: CurrentUser):
     return activity_read(require_activity(session, activity_id, user.id), user.id)
 
 
 @router.patch("/{activity_id}", response_model=ActivityRead)
-def update(activity_id: int, data: ActivityPatch, session: Database, user: CurrentUser):
+def update(activity_id: ResourceId, data: ActivityPatch, session: Database, user: CurrentUser):
     return activity_read(update_activity(session, activity_id, user, data), user.id)
 
 
 @router.get("/{activity_id}/members", response_model=list[MemberRead])
-def members(activity_id: int, session: Database, user: CurrentUser):
+def members(activity_id: ResourceId, session: Database, user: CurrentUser):
     return list_members(session, require_activity(session, activity_id, user.id))
 
 
 @router.get("/{activity_id}/audit-logs", response_model=list[AuditRead])
 def audit_logs(
-    activity_id: int,
+    activity_id: ResourceId,
     session: Database,
     user: CurrentUser,
     limit: Limit = 50,

@@ -10,11 +10,11 @@ from pydantic import (
     model_validator,
 )
 
-from app.models import MAX_CENTS, ActivityStatus, SplitMethod
+from app.models import MAX_CENTS, MAX_IDENTIFIER, ActivityStatus, SplitMethod
 
 Cents = Annotated[int, Field(strict=True, ge=0, le=MAX_CENTS)]
 PositiveCents = Annotated[int, Field(strict=True, gt=0, le=MAX_CENTS)]
-PositiveId = Annotated[int, Field(strict=True, gt=0)]
+PositiveId = Annotated[int, Field(strict=True, gt=0, le=MAX_IDENTIFIER)]
 ShortName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 Category = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
