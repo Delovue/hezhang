@@ -3,7 +3,7 @@
 - 日期：2026 年 10 月 28 日。
 - 分支：`feat/frontend`。
 - 后端基线：`aac4fe1`，已合并乙、丙 PR 的 main。
-- 前端版本：本次交付工作树；提交后应补充实际提交哈希，不能把后端基线当作前端代码版本。
+- 前端代码版本：`191eefa`（实现代码及测试）；本条记录在后续文档提交中补齐，该文档提交不改变实现代码。
 - 环境：Windows、Node.js 24.13.1、npm 11.15.0、Python 3.12.12；前端依赖见 `frontend/package-lock.json`，后端依赖见 `backend/uv.lock`。
 - 主要版本：Vue 3.5.44、Vue Router 4.6.4、Pinia 3.0.4、Element Plus 2.14.7、Vite 7.3.7、TypeScript 5.9.3、Vitest 3.2.7、Playwright 1.64.1。
 
