@@ -15,3 +15,18 @@ class PaymentStatus(StrEnum):
     CONFIRMED = "CONFIRMED"
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
+
+
+ACTIVITY_STATUS_LABELS = {
+    ActivityStatus.ACTIVE: "进行中",
+    ActivityStatus.SETTLING: "结算中",
+    ActivityStatus.SETTLED: "已结清",
+    ActivityStatus.ARCHIVED: "已归档",
+}
+
+PAYMENT_STATUS_LABELS = {
+    PaymentStatus.PENDING: "待确认",
+    PaymentStatus.CONFIRMED: "已确认",
+    PaymentStatus.REJECTED: "已拒绝",
+    PaymentStatus.CANCELLED: "已撤销",
+}
