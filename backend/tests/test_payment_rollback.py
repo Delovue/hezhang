@@ -9,14 +9,6 @@ from app.services import payment as payment_service
 from tests.test_payments_api import balance_rows, ledger, pay
 
 
-@pytest.fixture
-def settling(client, actors, trip):
-    client.post(
-        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
-    )
-    return trip
-
-
 def failing(original):
     def fail_after_audit(*args, **kwargs):
         original(*args, **kwargs)

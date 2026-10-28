@@ -127,3 +127,13 @@ def trip(client, actors, group):
         )
         assert response.status_code == 201, response.text
     return group
+
+
+@pytest.fixture
+def settling(client, actors, trip):
+    """三人出游示例，创建者已发起结算。"""
+    response = client.post(
+        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
+    )
+    assert response.json()["status"] == "SETTLING", response.text
+    return trip

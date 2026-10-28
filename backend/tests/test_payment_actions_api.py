@@ -4,14 +4,6 @@ from tests.test_expenses import create
 from tests.test_payments_api import balance_rows, ledger, pay
 
 
-@pytest.fixture
-def settling(client, actors, trip):
-    client.post(
-        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
-    )
-    return trip
-
-
 def act(client, actors, group, payment, action, actor):
     return client.post(
         f"/api/v1/activities/{group['id']}/payments/{payment['id']}/{action}",

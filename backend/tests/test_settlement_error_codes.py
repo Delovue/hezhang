@@ -16,12 +16,6 @@ def post(client, actors, group, path, actor="alice", **kwargs):
 
 
 @pytest.fixture
-def settling(client, actors, trip):
-    post(client, actors, trip, "start-settlement")
-    return trip
-
-
-@pytest.fixture
 def pending(client, actors, settling):
     return pay(client, actors, settling, "charlie", "alice", 2000).json()
 

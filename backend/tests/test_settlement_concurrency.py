@@ -8,20 +8,11 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier, Event
 from uuid import uuid4
 
-import pytest
 from sqlalchemy import event
 
 from app.database import transaction
 from app.models import Payment
 from tests.test_payments_api import balance_rows, ledger, pay
-
-
-@pytest.fixture
-def settling(client, actors, trip):
-    client.post(
-        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
-    )
-    return trip
 
 
 def run_together(*calls):

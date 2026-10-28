@@ -3,15 +3,6 @@ from uuid import uuid4
 import pytest
 
 
-@pytest.fixture
-def settling(client, actors, trip):
-    response = client.post(
-        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
-    )
-    assert response.json()["status"] == "SETTLING"
-    return trip
-
-
 def pay(client, actors, group, payer, payee, amount, request_id=None):
     return client.post(
         f"/api/v1/activities/{group['id']}/payments",
