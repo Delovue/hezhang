@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.balance import ExpenseEntry, MemberBalance, PaymentEntry, compute_balances
@@ -25,6 +25,18 @@ def require_members(
 ) -> None:
     if not set(ids) <= set(member_ids(session, activity_id)):
         raise ApiError(422, code, "所选成员必须属于本活动")
+
+
+def other_expenses_total(
+    session: Session, activity_id: int, exclude_expense_id: int | None = None
+) -> int:
+    """活动内有效费用的金额合计，可排除正在修改的那一笔。"""
+    query = select(func.coalesce(func.sum(Expense.amount_cents), 0)).where(
+        Expense.activity_id == activity_id, Expense.is_deleted.is_(False)
+    )
+    if exclude_expense_id is not None:
+        query = query.where(Expense.id != exclude_expense_id)
+    return session.scalar(query)
 
 
 def expense_entries(session: Session, activity_id: int) -> list[ExpenseEntry]:

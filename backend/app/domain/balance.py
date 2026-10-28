@@ -5,12 +5,28 @@
     可登记付出 = max(-余额, 0) - 待确认付出合计
     可登记收到 = max( 余额, 0) - 待确认收到合计
 余额不落库，每次由有效费用、分摊和付款流水重新计算。
+
+活动内有效费用总额不超过 MAX_CENTS。垫付、承担、余额、可登记额度和每条转账建议
+都不超过费用总额，因此都在单笔金额上限和 JavaScript 安全整数范围内。
 """
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from app.models import PaymentStatus
+from app.domain.errors import InvalidInputError
+from app.domain.money import format_cents
+from app.errors import ErrorCode
+from app.models import MAX_CENTS, PaymentStatus
+
+
+def ensure_total_within_limit(other_expenses_cents: int, amount_cents: int) -> None:
+    """保存费用前调用：本笔金额加上活动内其他有效费用，合计不得超过 MAX_CENTS。"""
+    if other_expenses_cents + amount_cents > MAX_CENTS:
+        raise InvalidInputError(
+            ErrorCode.INVALID_EXPENSE,
+            f"活动有效费用总额不能超过 {format_cents(MAX_CENTS)} 元，"
+            f"其他费用已合计 {format_cents(other_expenses_cents)} 元",
+        )
 
 
 @dataclass(frozen=True)

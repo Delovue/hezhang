@@ -5,12 +5,14 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domain.balance import ensure_total_within_limit
 from app.domain.split import calculate_split
 from app.errors import ApiError, ErrorCode
 from app.models import Expense, ExpenseRequest, ExpenseShare, Membership, SplitMethod, User
 from app.schemas import ExpenseCreate, ExpenseFields, ExpensePatch, ExpenseRead
 from app.services.activity import require_active, require_activity
 from app.services.audit import record_audit
+from app.services.balance import other_expenses_total
 
 
 def require_expense(session: Session, activity_id: int, expense_id: int) -> Expense:
@@ -103,6 +105,7 @@ def create_expense(
             return expense, False
     require_active(activity)
     validate_members(session, activity_id, data)
+    ensure_total_within_limit(other_expenses_total(session, activity_id), data.amount_cents)
     expense = Expense(
         activity_id=activity_id,
         created_by_id=user.id,
@@ -176,6 +179,9 @@ def update_expense(
             422, ErrorCode.INVALID_EXPENSE, "; ".join(error["msg"] for error in exc.errors())
         ) from None
     validate_members(session, activity_id, data)
+    ensure_total_within_limit(
+        other_expenses_total(session, activity_id, expense.id), data.amount_cents
+    )
     before = expense_snapshot(expense)
     # Delete old shares before inserting their replacements under the unique constraint.
     # Both flushes stay inside the same request transaction.

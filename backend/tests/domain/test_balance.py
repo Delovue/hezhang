@@ -1,8 +1,15 @@
 import pytest
 
-from app.domain.balance import ExpenseEntry, PaymentEntry, compute_balances
+from app.domain.balance import (
+    ExpenseEntry,
+    PaymentEntry,
+    compute_balances,
+    ensure_total_within_limit,
+)
+from app.domain.errors import InvalidInputError
 from app.domain.split import split_equal
-from app.models import PaymentStatus
+from app.errors import ErrorCode
+from app.models import MAX_CENTS, PaymentStatus
 
 A, B, C = 1, 2, 3
 
@@ -83,3 +90,13 @@ def test_reference_to_non_member_is_data_error():
 def test_unbalanced_expense_is_data_error():
     with pytest.raises(ValueError):
         compute_balances([A, B], [ExpenseEntry(A, 100, {A: 50, B: 49})], [])
+
+
+def test_activity_total_may_reach_limit():
+    ensure_total_within_limit(MAX_CENTS - 2, 2)
+
+
+def test_activity_total_over_limit_is_rejected():
+    with pytest.raises(InvalidInputError) as raised:
+        ensure_total_within_limit(MAX_CENTS, 2)
+    assert raised.value.code == ErrorCode.INVALID_EXPENSE
