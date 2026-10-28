@@ -1,0 +1,40 @@
+name: Backend checks
+on:
+  pull_request:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      HEZHANG_DATABASE_URL: sqlite:///./data/ci.db
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: |
+          python -m pip install uv==0.13.6
+          uv sync --locked
+      - name: Check code style
+        run: |
+          uv run --locked ruff check app tests migrations
+          uv run --locked ruff format --check app tests migrations
+      - name: Check database migrations
+        run: |
+          uv run --locked alembic upgrade head
+          uv run --locked alembic check
+      - name: Run backend tests
+        run: uv run --locked pytest -q --cov=app --cov-report=term-missing
