@@ -2,7 +2,7 @@
 
 - 验证日期：2026 年 10 月 28 日。
 - 分支：feat/backend-foundation。
-- 业务实现提交：4abc437。
+- 业务实现提交：5799e02。
 - 本地环境：Windows，Python 3.12.16；依赖版本固定在 backend/uv.lock。
 - 范围：乙的后端接口及共享分摊函数，未包含前端或付款结算功能。
 
@@ -10,8 +10,8 @@
 
 | 检查 | 结果 |
 | --- | --- |
-| pytest | 85 项通过，0 项失败 |
-| app 语句覆盖率 | 687 / 708，约 97% |
+| pytest | 99 项通过，0 项失败 |
+| app 语句覆盖率 | 759 / 773，约 98% |
 | Ruff 检查与格式检查 | 通过 |
 | Alembic 升级与模型差异检查 | 通过，无待生成迁移 |
 | 临时数据库回退再升级 | 通过 |
@@ -20,6 +20,7 @@
 | 首轮实际服务 GET /docs | 200；记录来自首轮代码 |
 | 第二轮实际服务预览 | 未完成：重启旧进程和启动隔离预览的命令均被自动审批策略拦截 |
 | 第三轮验证范围 | 独立测试库、TestClient 接口、OpenAPI 契约及 GitHub CI；未刷新开发服务 |
+| 第四轮验证范围 | TestClient、独立测试库的真实 SQLite 写锁、错误与 OpenAPI 契约、GitHub CI；未刷新开发服务 |
 
 运行命令在 backend 目录执行：
 
@@ -58,6 +59,11 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 - 请求、费用、分摊和历史已 flush 后注入异常，整个事务回滚；之后可使用相同编号重新提交。
 - 重建应用后请求记录仍有效；不带 request_id 的调用保持原行为，非法 UUID v4 被拒绝。
 - 0001 升级至 0002 保留已有账单、软删除记录、分摊和审计；数据库版本过旧、未知或有多条版本记录时健康检查返回 503。
+- 业务错误保留原 HTTP 状态和 detail，同时提供稳定 code 与 retryable；非成员与不存在活动的错误完全一致。
+- 真实 SQLite 写锁等待失败返回 DATABASE_BUSY、retryable=true 和 Retry-After；释放锁后使用原编号重试只保存一笔。
+- 唯一约束失败、缺表和未预期异常触发事务整体回滚，错误响应不包含 SQL、数据库参数或异常堆栈。
+- 允许的前端来源可读取恢复提示和 500 JSON，未允许的来源没有跨域授权；认证与方法错误保留必要响应头。
+- 所有业务操作在 OpenAPI 中声明 ErrorResponse，运行时错误可通过同一模型校验；嵌套表单字段位置保留数字索引，成功响应保持原模型。
 
 并发测试使用同一个临时数据库文件的独立连接，使用同步事件协调执行顺序。封账状态由测试代码写入；这些结果验证乙侧的事务与写入保护，不代表封账业务端点或付款结算已经完成。
 
@@ -85,10 +91,20 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 
 已检查 OpenAPI 将 request_id 描述为可选 UUID v4，费用创建同时声明 201 与重试 200，公共费用响应结构不变。第三轮增加了 0002 迁移，数据库模型差异检查通过。
 
+第四轮新增 14 项测试，合计 99 项；迁移版本仍为 0002：
+
+| 内容 | 测试文件 | 数量 |
+| --- | --- | ---: |
+| 认证、权限、冲突、校验与框架错误的稳定代码 | [test_api_errors.py](../backend/tests/test_api_errors.py) | 6 |
+| 真实写锁、恢复提示、数据库错误、回滚和异常响应的跨域规则 | [test_database_errors.py](../backend/tests/test_database_errors.py) | 6 |
+| OpenAPI 与运行时一致性、成功模型及嵌套字段位置 | [test_error_contract.py](../backend/tests/test_error_contract.py) | 2 |
+
+写锁测试只对测试连接将 busy_timeout 缩短到 50 ms，开发配置仍为 5 秒。测试确实持有独立 SQLite 写事务，验证失败时未留下费用或请求编号，释放锁后原请求可以成功重试。未预期异常响应使用关闭异常透传的 TestClient 验证真实 JSON 与跨域响应头；原回滚测试继续保留异常透传验证。
+
 第二轮的 64 项自动化测试通过 FastAPI TestClient 调用当前代码。旧的本地 8000 端口服务未刷新，不能用其文档页证明新查询参数已上线；需要按 README 从当前分支重新启动服务后再开展真实前端联调。命令拒绝信息只有“blocked by policy”，没有进一步说明原因。
 
 当前锁定的 Starlette 在使用 HTTPX 测试兼容层时产生 1 项弃用提示，未导致测试失败。后续依赖调整应重新运行完整测试。
 
-GitHub Actions 的 [backend 工作流](../.github/workflows/backend.yml)会在 PR 和 main 更新时执行后端检查。[业务提交 4abc437 的远端检查](https://github.com/Delovue/hezhang/actions/runs/40648471953)已通过，包括依赖安装、格式检查、迁移与后端测试；后续提交以其各自运行记录为准。
+GitHub Actions 的 [backend 工作流](../.github/workflows/backend.yml)会在 PR 和 main 更新时执行后端检查。[业务提交 5799e02 的远端检查](https://github.com/Delovue/hezhang/actions/runs/40658249176)已通过，包括依赖安装、格式检查、迁移与后端测试；后续提交以其各自运行记录为准。
 
-尚未验收：甲的界面、丙的余额与付款结算和状态转换端点、统计导出、浏览器完整业务流程、第二台电脑现场演示，以及开发计划 T01–T20 的整系统验收。上述 85 项后端测试不能替代这些验收。
+尚未在本分支集成验收：甲的界面、丙的余额与付款结算和状态转换端点、统计导出、浏览器完整业务流程、第二台电脑现场演示，以及开发计划 T01–T20 的整系统验收。上述 99 项后端测试不能替代这些验收。
