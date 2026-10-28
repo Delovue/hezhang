@@ -113,6 +113,6 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 
 当前锁定的 Starlette 在使用 HTTPX 测试兼容层时产生 1 项弃用提示，未导致测试失败。
 
-GitHub Actions 只在指向 main 的 PR 和 main 更新时运行。feat/settlement 尚未向 main 提交 PR，因此本记录中的检查均为本地结果，远端 CI 结果待 PR 创建后补充。
+GitHub Actions 的 backend 工作流在 [PR #2](https://github.com/Delovue/hezhang/pull/2) 上对提交 05f1d37 运行通过（[运行记录](https://github.com/Delovue/hezhang/actions/runs/40687998195)，用时 2 分 41 秒）：Ruff 检查与格式检查通过，迁移升级后无待生成迁移，325 项测试全部通过，app 语句覆盖率 99%，与本地结果一致。后续提交以其各自的运行记录为准。
 
 尚未验收：甲的界面、浏览器完整流程（T19 的页面部分、T20）、第二台电脑复现。上述后端测试与冒烟流程不能替代这些验收。
