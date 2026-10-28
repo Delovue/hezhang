@@ -20,6 +20,7 @@ class ExpenseEntry:
     payer_id: int
     amount_cents: int
     shares: Mapping[int, int]
+    category: str = "未分类"  # 仅统计使用，不影响余额
 
 
 @dataclass(frozen=True)
