@@ -95,3 +95,45 @@ def expense_data(group):
         "split_method": "EQUAL",
         "participants": [{"member_id": mid} for mid in group["member_ids"].values()],
     }
+
+
+def trip_expenses(group):
+    """README 三人出游示例：alice 垫付餐费 120 元三人均摊，bob 垫付车费 60 元仅 alice、bob 分摊。"""
+    ids = group["member_ids"]
+    base = {"category": "餐饮", "expense_date": "2026-10-27", "split_method": "EQUAL"}
+    meal = base | {
+        "title": "晚餐",
+        "amount_cents": 12000,
+        "payer_member_id": ids["alice"],
+        "participants": [{"member_id": ids[name]} for name in ["alice", "bob", "charlie"]],
+    }
+    taxi = base | {
+        "title": "打车",
+        "category": "交通",
+        "amount_cents": 6000,
+        "payer_member_id": ids["bob"],
+        "participants": [{"member_id": ids[name]} for name in ["alice", "bob"]],
+    }
+    return meal, taxi
+
+
+@pytest.fixture
+def trip(client, actors, group):
+    for expense, actor in zip(trip_expenses(group), ["alice", "bob"], strict=True):
+        response = client.post(
+            f"/api/v1/activities/{group['id']}/expenses",
+            headers=actors[actor]["headers"],
+            json=expense,
+        )
+        assert response.status_code == 201, response.text
+    return group
+
+
+@pytest.fixture
+def settling(client, actors, trip):
+    """三人出游示例，创建者已发起结算。"""
+    response = client.post(
+        f"/api/v1/activities/{trip['id']}/start-settlement", headers=actors["alice"]["headers"]
+    )
+    assert response.json()["status"] == "SETTLING", response.text
+    return trip

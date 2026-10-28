@@ -12,12 +12,24 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import activities, auth, expenses
+from app.api import activities, auth, expenses, payments, reports, settlement
 from app.config import Settings
 from app.database import build_engine, transaction
+from app.domain.errors import (
+    DomainError,
+    InvalidInputError,
+    PermissionDeniedError,
+    StateConflictError,
+)
 from app.errors import API_ERROR_RESPONSES, ApiError, ErrorCode, error_response
 
 logger = logging.getLogger(__name__)
+
+DOMAIN_ERROR_STATUS = {
+    InvalidInputError: 422,
+    PermissionDeniedError: 403,
+    StateConflictError: 409,
+}
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -38,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="合账基础后端",
         version="0.1.0",
         lifespan=lifespan,
-        description="角色乙：认证、活动、成员、费用与审计。金额单位为分。",
+        description="认证、活动、成员、费用与审计（乙）；分摊预览、余额、结算与付款（丙）。金额单位为分。",
     )
     app.state.settings = settings
     app.state.engine = engine
@@ -50,9 +62,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
         expose_headers=["Retry-After"],
     )
-    app.include_router(auth.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
-    app.include_router(activities.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
-    app.include_router(expenses.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
+    for module in [auth, activities, expenses, settlement, payments, reports]:
+        app.include_router(module.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(_request: Request, exc: StarletteHTTPException):
@@ -75,6 +86,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             for error in exc.errors()
         ]
         return error_response(422, ErrorCode.VALIDATION_ERROR, detail)
+
+    @app.exception_handler(DomainError)
+    async def domain_error(_request: Request, exc: DomainError):
+        return error_response(DOMAIN_ERROR_STATUS[type(exc)], exc.code, exc.message)
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(_request: Request, _exc: IntegrityError):

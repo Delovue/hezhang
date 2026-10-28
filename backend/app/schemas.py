@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models import MAX_CENTS, MAX_IDENTIFIER, ActivityStatus, SplitMethod
+from app.models import MAX_CENTS, MAX_IDENTIFIER, ActivityStatus, PaymentStatus, SplitMethod
 
 Cents = Annotated[int, Field(strict=True, ge=0, le=MAX_CENTS)]
 PositiveCents = Annotated[int, Field(strict=True, gt=0, le=MAX_CENTS)]
@@ -196,3 +196,65 @@ class AuditRead(Schema):
     @classmethod
     def include_timezone(cls, value: datetime) -> datetime:
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+class MemberBalanceRead(Schema):
+    member_id: int
+    paid_cents: int
+    owed_cents: int
+    confirmed_out_cents: int
+    confirmed_in_cents: int
+    pending_out_cents: int
+    pending_in_cents: int
+    balance_cents: int
+    available_out_cents: int
+    available_in_cents: int
+
+
+class TransferRead(Schema):
+    payer_member_id: int
+    payee_member_id: int
+    amount_cents: int
+
+
+class PaymentCreate(Schema):
+    payee_member_id: PositiveId
+    amount_cents: PositiveCents
+    request_id: UUID4 = Field(
+        description="同一次付款登记使用同一个 UUID v4；相同请求重试不会重复登记"
+    )
+
+
+class PaymentRead(Schema):
+    id: int
+    activity_id: int
+    payer_member_id: int
+    payee_member_id: int
+    amount_cents: int
+    status: PaymentStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("created_at", "updated_at")
+    @classmethod
+    def include_timezone(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+class CategoryTotalRead(Schema):
+    category: str
+    amount_cents: int
+
+
+class MemberShareTotalRead(Schema):
+    member_id: int
+    owed_cents: int
+
+
+class StatisticsRead(Schema):
+    total_spent_cents: int
+    budget_cents: int | None
+    remaining_budget_cents: int | None
+    over_budget: bool
+    by_category: list[CategoryTotalRead]
+    by_member: list[MemberShareTotalRead]

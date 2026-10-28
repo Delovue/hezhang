@@ -30,9 +30,9 @@ def test_health_requires_current_migration(settings):
         command.upgrade(config, "0001")
         old = client.get("/health")
         assert old.status_code == 503
-        assert old.json()["expected_schema_revision"] == "0002"
+        assert old.json()["expected_schema_revision"] == "0003"
         command.upgrade(config, "head")
-        assert client.get("/health").json() == {"status": "ok", "schema_revision": "0002"}
+        assert client.get("/health").json() == {"status": "ok", "schema_revision": "0003"}
         with transaction(client.app.state.engine, write=True) as session:
             session.execute(text("UPDATE alembic_version SET version_num = 'unknown'"))
         assert client.get("/health").status_code == 503
