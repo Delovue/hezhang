@@ -4,7 +4,7 @@
 
 项目以朋友旅行为主要场景，完成“创建活动 → 邀请成员 → 共同记账 → 费用分摊 → 付款确认 → 结清归档”的流程，并通过业务规则、测试和真实 Git 提交记录展示开发过程。
 
-**当前阶段：后端已实现，包括角色乙的认证、活动、费用与操作历史，以及角色丙的分摊、余额、付款结算、统计与导出。前端待继续开发。**
+**当前阶段：乙、丙的后端已合入 main；甲的前端第一阶段已实现注册登录、活动列表、创建与加入、活动编辑、成员展示和预算统计概览。费用、付款结算、历史与导出页面待继续开发。整系统尚未完成验收。**
 
 已实现注册登录、活动与成员、费用增删改查、三种分摊计算、权限和操作历史，并提供数据库迁移。活动可按状态和名称筛选，费用可按关键词与分摊参与人组合查询，历史支持按对象、操作者和动作追溯及游标翻页。费用创建可携带 request_id，重复或并发重试只记一笔。错误响应提供稳定错误码、恢复提示及 OpenAPI 类型，便于前端对接。99 项后端测试通过，app 语句覆盖率约 98%。
 
@@ -15,6 +15,8 @@
 - [结算后端交接说明](docs/SETTLEMENT_HANDOFF.md)
 - [结算后端测试记录](docs/SETTLEMENT_TEST_REPORT.md)
 - [结算模块设计与算法说明](docs/SETTLEMENT_DESIGN.md)
+- [前端交接与推进计划](docs/FRONTEND_HANDOFF.md)
+- [前端测试记录](docs/FRONTEND_TEST_REPORT.md)
 
 ## 开发计划
 
@@ -53,6 +55,34 @@ uv run --locked ruff format --check app tests migrations
 uv run --locked alembic check
 ~~~
 
+## 前端运行
+
+在包含本次前端代码的 `feat/frontend` 分支中运行。先按上文启动后端，再新开一个终端，在仓库根目录执行：
+
+~~~text
+cd frontend
+npm ci
+npm run dev
+~~~
+
+浏览器打开 http://127.0.0.1:5173。Node.js 支持 22.12 以上的 22.x 或 24 以上版本；本次开发使用 24.13.1。依赖由 `frontend/package-lock.json` 锁定。
+
+开发服务器将 `/api` 请求转发到 http://127.0.0.1:8000。需要其他地址时，将 `frontend/.env.example` 复制为 `frontend/.env.local`，修改 `HEZHANG_API_TARGET` 后重启前端。也可以继续运行旁边 `hezhang-backend` 目录的后端，但它需要更新到同一后端基线；当前前端分支已包含合并后的后端，可以直接使用本仓库的 `backend/`。
+
+没有预置账号；在页面注册自己的账号。令牌仅保存在内存中，刷新后需要重新登录，已保存的活动不受影响。登录过期时可用原账号重新登录，继续填写当前表单。
+
+前端验证：
+
+~~~text
+cd frontend
+npm run build
+npm test
+npm run test:install-browser
+npm run test:e2e
+~~~
+
+浏览器测试需要先在 `backend/` 执行 `uv sync --locked`，建立 Python 虚拟环境。测试自动在 18000、15173 端口启动隔离的后端和前端，不要提前在这些端口启动服务。测试数据库位于忽略的 `.e2e/` 目录，不使用或清空开发数据库。构建目录 `frontend/dist/` 可生成静态资源；本轮不包含生产托管配置。
+
 ## 完整首版规划
 
 | 模块 | 主要功能 |
@@ -83,6 +113,8 @@ C 登记支付 20 元时，余额保持不变；A 确认收到后，A 应收 30 
 
 - [开发计划](docs/DEVELOPMENT_PLAN.md)：需求、架构、接口、分工、排期、测试和答辩安排。
 - [基础后端](backend/)：FastAPI 路由、业务服务、共享分摊、模型、迁移和测试。
+- [前端](frontend/)：Vue 页面、路由、内存会话、API 调用、金额工具和自动化测试。
+- [前端交接](docs/FRONTEND_HANDOFF.md)：本轮功能、接口基线和后续记账结算任务。
 - [后端交接说明](docs/BACKEND_HANDOFF.md)：字段、权限、版本、事务约定及与甲、丙的接口。
 - [后端测试记录](docs/BACKEND_TEST_REPORT.md)：实际验证结果及尚待集成的范围。
 - `.gitignore`：忽略环境变量、依赖、数据库和构建产物。

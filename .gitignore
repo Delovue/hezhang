@@ -40,3 +40,8 @@ test-results/
 .DS_Store
 Thumbs.db
 *.log
+
+# Workspace-local dependency caches and isolated browser-test databases
+.cache/
+.e2e/
+*.tsbuildinfo
