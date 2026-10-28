@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
-from app.api.parameters import Limit, Offset, OptionalQueryId, ResourceId
-from app.models import Activity, AuditLog, Membership
+from app.api.parameters import Limit, Offset, OptionalQueryId, ResourceId, Search
+from app.models import Activity, ActivityStatus, AuditLog, Membership
 from app.schemas import (
     ActivityCreate,
     ActivityPatch,
@@ -35,16 +35,27 @@ def create(data: ActivityCreate, session: Database, user: CurrentUser):
 def list_activities(
     session: Database,
     user: CurrentUser,
+    status: ActivityStatus | None = None,
+    q: Search = None,
+    before_id: OptionalQueryId = None,
     limit: Limit = 50,
     offset: Offset = 0,
 ):
-    activities = session.scalars(
+    if before_id is not None and offset:
+        raise HTTPException(422, "before_id 不能与非零 offset 同时使用")
+    query = (
         select(Activity)
         .join(Membership, Membership.activity_id == Activity.id)
         .where(Membership.user_id == user.id)
-        .order_by(Activity.id.desc())
-        .limit(limit)
-        .offset(offset)
+    )
+    if status is not None:
+        query = query.where(Activity.status == status)
+    if q is not None:
+        query = query.where(Activity.name.icontains(q, autoescape=True))
+    if before_id is not None:
+        query = query.where(Activity.id < before_id)
+    activities = session.scalars(
+        query.order_by(Activity.id.desc()).limit(limit).offset(offset)
     ).all()
     return [activity_read(activity, user.id) for activity in activities]
 

@@ -50,13 +50,15 @@ POST /api/v1/auth/login 接收 username 和 password，返回 access_token、tok
 | 方法与路径 | 行为 |
 | --- | --- |
 | POST /api/v1/activities | 创建活动，请求 name 和可选 budget_cents |
-| GET /api/v1/activities | 仅列出本人参加的活动 |
+| GET /api/v1/activities | 仅列出本人参加的活动；可用 status、q 组合筛选 |
 | GET /api/v1/activities/{id} | 查询详情 |
 | PATCH /api/v1/activities/{id} | 创建者在 ACTIVE 状态修改名称或预算 |
 | POST /api/v1/activities/join | 用 invite_code 加入 |
 | GET /api/v1/activities/{id}/members | 查询成员 id、user_id、display_name、role |
 
 预算为 null 表示未设置，0 是有效预算。仅活动创建者在 ACTIVE 状态能看到邀请码，其他成员收到 null。不可从操作历史获取邀请码。
+
+活动列表的 status 可选 ACTIVE、SETTLING、SETTLED、ARCHIVED；省略时返回全部状态。q 在活动名称中做字面子串匹配，裁剪首尾空格后为 1–120 字符，忽略 ASCII 字母大小写。结果按活动 id 倒序排列，可使用 limit、offset，或将上一页最后一个活动 id 作为 before_id 加载更早创建的活动；before_id 不能与非零 offset 同用。新建活动不会使游标分页重复返回旧活动，但切换筛选条件或有新加入、状态变化时，应从第一页刷新列表。
 
 **成员 id 与用户 user_id 是不同标识。** 付款人和分摊参与人使用成员 id，不能直接拿登录返回的用户 id 充当成员 id。
 
