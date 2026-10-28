@@ -29,6 +29,13 @@ class ActivityStatus(StrEnum):
     ARCHIVED = "ARCHIVED"
 
 
+class PaymentStatus(StrEnum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
+
+
 class SplitMethod(StrEnum):
     EQUAL = "EQUAL"
     EXACT = "EXACT"

@@ -2,7 +2,7 @@ import pytest
 
 from app.domain.balance import ExpenseEntry, PaymentEntry, compute_balances
 from app.domain.split import split_equal
-from app.domain.status import PaymentStatus
+from app.models import PaymentStatus
 
 A, B, C = 1, 2, 3
 

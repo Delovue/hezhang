@@ -11,7 +11,7 @@ from app.domain.payment import (
     validate_new_payment,
 )
 from app.domain.split import split_equal
-from app.domain.status import ActivityStatus, PaymentStatus
+from app.models import ActivityStatus, PaymentStatus
 
 A, B, C = 1, 2, 3
 SETTLING = ActivityStatus.SETTLING

@@ -5,7 +5,8 @@ from datetime import date
 import pytest
 
 from app.domain.export import ExportExpense, build_expense_csv, escape_formula
-from app.domain.split import SplitMethod, split_equal
+from app.domain.split import split_equal
+from app.models import SplitMethod
 
 A, B, C = 1, 2, 3
 MEMBERS = [(A, "小A"), (B, "小B"), (C, "小C")]

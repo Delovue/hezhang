@@ -4,7 +4,7 @@ from collections import defaultdict
 from app.domain.balance import ExpenseEntry, PaymentEntry, compute_balances
 from app.domain.settlement import Transfer, suggest_transfers
 from app.domain.split import split_equal
-from app.domain.status import PaymentStatus
+from app.models import PaymentStatus
 
 A, B, C, D = 1, 2, 3, 4
 

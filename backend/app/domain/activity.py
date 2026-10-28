@@ -10,7 +10,7 @@ from collections.abc import Sequence
 
 from app.domain.balance import MemberBalance
 from app.domain.errors import PermissionDeniedError, StateConflictError
-from app.domain.status import ActivityStatus
+from app.models import ActivityStatus
 
 
 def is_cleared(balances: Sequence[MemberBalance]) -> bool:

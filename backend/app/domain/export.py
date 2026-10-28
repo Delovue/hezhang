@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.domain.money import format_cents
-from app.domain.split import SplitMethod
+from app.models import SplitMethod
 
 SPLIT_METHOD_LABELS = {
     SplitMethod.EQUAL: "均摊",

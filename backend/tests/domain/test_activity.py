@@ -11,7 +11,7 @@ from app.domain.activity import (
 from app.domain.balance import ExpenseEntry, PaymentEntry, compute_balances
 from app.domain.errors import PermissionDeniedError, StateConflictError
 from app.domain.split import split_equal
-from app.domain.status import ActivityStatus, PaymentStatus
+from app.models import ActivityStatus, PaymentStatus
 
 A, B, C = 1, 2, 3
 CREATOR = A

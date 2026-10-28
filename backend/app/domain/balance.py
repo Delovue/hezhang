@@ -10,7 +10,7 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from app.domain.status import PaymentStatus
+from app.models import PaymentStatus
 
 
 @dataclass(frozen=True)

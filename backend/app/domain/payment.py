@@ -13,7 +13,8 @@ from app.domain.balance import MemberBalance
 from app.domain.errors import InvalidInputError, PermissionDeniedError, StateConflictError
 from app.domain.money import format_cents
 from app.domain.split import validate_amount
-from app.domain.status import PAYMENT_STATUS_LABELS, ActivityStatus, PaymentStatus
+from app.domain.status import PAYMENT_STATUS_LABELS
+from app.models import ActivityStatus, PaymentStatus
 
 
 def validate_new_payment(
