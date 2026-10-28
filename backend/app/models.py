@@ -170,6 +170,38 @@ class ExpenseRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now())
 
 
+class Payment(Base):
+    """成员之间在系统外完成的结算付款登记，不计入活动消费。"""
+
+    __tablename__ = "payments"
+    __table_args__ = (
+        UniqueConstraint("activity_id", "payer_member_id", "request_id"),
+        ForeignKeyConstraint(
+            ["payer_member_id", "activity_id"], ["memberships.id", "memberships.activity_id"]
+        ),
+        ForeignKeyConstraint(
+            ["payee_member_id", "activity_id"], ["memberships.id", "memberships.activity_id"]
+        ),
+        CheckConstraint(f"amount_cents BETWEEN 1 AND {MAX_CENTS}", name="amount_range"),
+        CheckConstraint("payer_member_id <> payee_member_id", name="distinct_parties"),
+        CheckConstraint("length(request_id) = 36", name="request_id_length"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
+    payer_member_id: Mapped[int] = mapped_column(Integer)
+    payee_member_id: Mapped[int] = mapped_column(Integer)
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, native_enum=False, create_constraint=True, name="payment_status"),
+        default=PaymentStatus.PENDING,
+    )
+    request_id: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id: Mapped[int] = mapped_column(primary_key=True)
