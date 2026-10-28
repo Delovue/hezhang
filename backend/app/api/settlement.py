@@ -4,9 +4,10 @@ from app.api.dependencies import CurrentUser, Database
 from app.api.parameters import ResourceId
 from app.domain.settlement import suggest_transfers
 from app.domain.split import calculate_split
-from app.schemas import MemberBalanceRead, ShareRead, SplitInput, TransferRead
-from app.services.activity import require_activity
+from app.schemas import ActivityRead, MemberBalanceRead, ShareRead, SplitInput, TransferRead
+from app.services.activity import activity_read, require_activity
 from app.services.balance import load_balances, require_members
+from app.services.lifecycle import archive_activity, start_settlement
 
 router = APIRouter(prefix="/activities/{activity_id}", tags=["余额与结算"])
 
@@ -36,3 +37,14 @@ def settlement_suggestions(activity_id: ResourceId, session: Database, user: Cur
         )
         for transfer in suggest_transfers(load_balances(session, activity_id))
     ]
+
+
+@router.post("/start-settlement", response_model=ActivityRead)
+def start(activity_id: ResourceId, session: Database, user: CurrentUser):
+    """创建者发起结算，冻结账目；已满足结清条件时直接返回 SETTLED。"""
+    return activity_read(start_settlement(session, activity_id, user), user.id)
+
+
+@router.post("/archive", response_model=ActivityRead)
+def archive(activity_id: ResourceId, session: Database, user: CurrentUser):
+    return activity_read(archive_activity(session, activity_id, user), user.id)
