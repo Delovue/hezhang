@@ -63,8 +63,7 @@ def split_equal(amount_cents: int, member_ids: Sequence[int]) -> dict[int, int]:
     ordered = validate_members(member_ids)
     base, remainder = divmod(amount_cents, len(ordered))
     return {
-        member_id: base + (1 if index < remainder else 0)
-        for index, member_id in enumerate(ordered)
+        member_id: base + (1 if index < remainder else 0) for index, member_id in enumerate(ordered)
     }
 
 

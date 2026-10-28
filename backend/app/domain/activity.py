@@ -51,9 +51,7 @@ def start_settlement(
     return ActivityStatus.SETTLED if is_cleared(balances) else ActivityStatus.SETTLING
 
 
-def settle_if_cleared(
-    status: ActivityStatus, balances: Sequence[MemberBalance]
-) -> ActivityStatus:
+def settle_if_cleared(status: ActivityStatus, balances: Sequence[MemberBalance]) -> ActivityStatus:
     """付款状态变化后调用，由服务端自动判定是否结清。"""
     if status == ActivityStatus.SETTLING and is_cleared(balances):
         return ActivityStatus.SETTLED

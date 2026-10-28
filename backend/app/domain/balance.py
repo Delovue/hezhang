@@ -44,10 +44,7 @@ class MemberBalance:
     @property
     def balance_cents(self) -> int:
         return (
-            self.paid_cents
-            - self.owed_cents
-            + self.confirmed_out_cents
-            - self.confirmed_in_cents
+            self.paid_cents - self.owed_cents + self.confirmed_out_cents - self.confirmed_in_cents
         )
 
     @property
