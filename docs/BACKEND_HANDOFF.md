@@ -103,6 +103,22 @@ EXACT 的参与人填写 member_id、amount_cents；SHARES 填写 member_id、sh
 
 保存成功后使用响应中的新 version。过期 version 返回 409，界面应提示刷新并保留尚未提交的输入，不能自动覆盖新版本。付款人并不自动拥有修改权；修改和删除只允许费用记录者或活动创建者执行。
 
+### 操作历史筛选与追溯
+
+GET /api/v1/activities/{id}/audit-logs 支持以下可组合的参数，仍返回按历史 id 倒序排列的数组：
+
+| 参数 | 含义 |
+| --- | --- |
+| action | 精确匹配动作，如 EXPENSE_UPDATED；格式为大写字母、数字和下划线，首位为字母，最长 40 位 |
+| object_type | 精确匹配对象类型，如 expense、activity、membership；格式为小写字母、数字和下划线，首位为字母，最长 30 位 |
+| object_id | 对象编号，使用时必须同时提供 object_type，避免不同类型的同号对象混在一起 |
+| actor_user_id | 操作者的用户 ID；不是成员 ID |
+| before_id | 只返回早于该历史 id 的记录，搭配 limit 加载更早历史；不能与非零 offset 混用 |
+
+例如 `?object_type=expense&object_id=12` 可追溯某笔费用的创建、修改与删除，包括 before、after 快照。软删除费用和归档活动仍可查历史；权限始终限定为本活动成员。
+
+首次请求使用 limit，下一页将上一页最后一条的 id 作为 before_id，并保留原筛选条件。这样新增历史不会导致继续向前翻页时出现重复记录；要查看刚发生的操作，重新请求第一页。原 limit、offset 用法仍保留，查询本身不会新增历史。
+
 ## 错误处理约定
 
 | HTTP 状态 | 前端处理 |
