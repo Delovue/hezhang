@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
@@ -10,6 +10,7 @@ from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
 from app.services.activity import require_activity
 from app.services.expense import (
     create_expense,
+    delete_expense,
     require_expense,
     update_expense,
 )
@@ -66,3 +67,15 @@ def update(
     user: CurrentUser,
 ):
     return update_expense(session, activity_id, expense_id, user, data)
+
+
+@router.delete("/{expense_id}", status_code=204)
+def delete(
+    activity_id: int,
+    expense_id: int,
+    session: Database,
+    user: CurrentUser,
+    version: Annotated[int, Query(ge=1)],
+):
+    delete_expense(session, activity_id, expense_id, user, version)
+    return Response(status_code=204)

@@ -144,3 +144,27 @@ def update_expense(
         after=expense_snapshot(expense),
     )
     return expense
+
+
+def delete_expense(
+    session: Session, activity_id: int, expense_id: int, user: User, version: int
+) -> None:
+    activity = require_activity(session, activity_id, user.id)
+    expense = require_expense(session, activity_id, expense_id)
+    require_expense_editor(expense, user.id, activity.owner_id)
+    require_active(activity)
+    require_version(expense, version)
+    before = expense_snapshot(expense)
+    expense.is_deleted = True
+    expense.version += 1
+    session.flush()
+    record_audit(
+        session,
+        activity_id=activity_id,
+        actor_user_id=user.id,
+        action="EXPENSE_DELETED",
+        object_type="expense",
+        object_id=expense.id,
+        before=before,
+        after=expense_snapshot(expense),
+    )

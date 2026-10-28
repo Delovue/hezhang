@@ -1,10 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier, Event
 
-from sqlalchemy import event
+import pytest
+from sqlalchemy import event, func, select
 
 from app.database import transaction
-from app.models import Activity, ActivityStatus
+from app.models import Activity, ActivityStatus, Expense, ExpenseShare
+from app.services import expense as expense_service
 
 
 def create(client, actors, group, data, actor="alice"):
@@ -43,6 +45,71 @@ def test_create_rejects_foreign_members(client, actors, outsider, group, expense
             == 422
         )
     assert client.get(path, headers=actors["alice"]["headers"]).json() == []
+
+
+def test_create_update_stale_version_delete_and_audit(client, actors, group, expense_data):
+    original = create(client, actors, group, expense_data)
+    path = f"/api/v1/activities/{group['id']}/expenses/{original['id']}"
+    headers = actors["alice"]["headers"]
+    assert [share["amount_cents"] for share in original["shares"]] == [3334, 3333, 3333]
+    assert original["version"] == 1
+    updated = client.patch(path, headers=headers, json={"version": 1, "amount_cents": 12000})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["version"] == 2
+    assert [share["amount_cents"] for share in updated.json()["shares"]] == [4000] * 3
+    assert (
+        client.patch(path, headers=headers, json={"version": 1, "title": "旧修改"}).status_code
+        == 409
+    )
+    assert client.delete(path + "?version=1", headers=headers).status_code == 409
+    assert client.delete(path + "?version=2", headers=headers).status_code == 204
+    assert client.get(path, headers=headers).status_code == 404
+    assert client.get(path.rsplit("/", 1)[0], headers=headers).json() == []
+    history = client.get(f"/api/v1/activities/{group['id']}/audit-logs", headers=headers).json()
+    edits = [row for row in history if row["object_type"] == "expense"]
+    assert [row["action"] for row in edits] == [
+        "EXPENSE_DELETED",
+        "EXPENSE_UPDATED",
+        "EXPENSE_CREATED",
+    ]
+    assert edits[1]["before"]["amount_cents"] == 10000
+    assert edits[1]["after"]["amount_cents"] == 12000
+    assert edits[0]["after"]["is_deleted"] is True
+    with transaction(client.app.state.engine) as session:
+        assert session.get(Expense, original["id"]).is_deleted is True
+        assert session.scalar(select(func.count()).select_from(ExpenseShare)) == 3
+
+
+def test_recording_for_others_does_not_grant_payer_edit_rights(
+    client,
+    actors,
+    group,
+    expense_data,
+):
+    expense_data["payer_member_id"] = group["member_ids"]["charlie"]
+    original = create(client, actors, group, expense_data, actor="bob")
+    path = f"/api/v1/activities/{group['id']}/expenses/{original['id']}"
+    assert (
+        client.patch(
+            path, headers=actors["charlie"]["headers"], json={"version": 1, "title": "越权"}
+        ).status_code
+        == 403
+    )
+    assert (
+        client.delete(path + "?version=1", headers=actors["charlie"]["headers"]).status_code == 403
+    )
+    assert (
+        client.patch(
+            path, headers=actors["alice"]["headers"], json={"version": 1, "title": "创建者修订"}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.patch(
+            path, headers=actors["bob"]["headers"], json={"version": 2, "notes": None}
+        ).status_code
+        == 200
+    )
 
 
 def test_partial_participation_and_other_split_methods(client, actors, group, expense_data):
@@ -122,6 +189,31 @@ def test_cross_activity_references_and_access_rejected(
     assert len(client.get(base, headers=actors["alice"]["headers"]).json()) == 1
 
 
+@pytest.mark.parametrize(
+    "status",
+    [
+        ActivityStatus.SETTLING,
+        ActivityStatus.SETTLED,
+        ActivityStatus.ARCHIVED,
+    ],
+)
+def test_frozen_expenses_reject_all_writes(client, actors, group, expense_data, status):
+    original = create(client, actors, group, expense_data)
+    with transaction(client.app.state.engine, write=True) as session:
+        session.get(Activity, group["id"]).status = status
+    base = f"/api/v1/activities/{group['id']}/expenses"
+    headers = actors["alice"]["headers"]
+    assert client.post(base, headers=headers, json=expense_data).status_code == 409
+    assert (
+        client.patch(
+            base + f"/{original['id']}", headers=headers, json={"version": 1, "title": "修改"}
+        ).status_code
+        == 409
+    )
+    assert client.delete(base + f"/{original['id']}?version=1", headers=headers).status_code == 409
+    assert client.get(base, headers=headers).status_code == 200
+
+
 def test_expense_filters_and_pagination(client, actors, group, expense_data):
     for index in range(3):
         create(
@@ -153,6 +245,42 @@ def test_expense_filters_and_pagination(client, actors, group, expense_data):
             base, headers=headers, params={"start_date": "2026-10-28", "end_date": "2026-10-26"}
         ).status_code
         == 422
+    )
+
+
+@pytest.mark.parametrize("operation", ["create", "update", "delete"])
+def test_expense_and_shares_rollback_if_audit_fails(
+    client,
+    actors,
+    group,
+    expense_data,
+    monkeypatch,
+    operation,
+):
+    original = create(client, actors, group, expense_data)
+    base = f"/api/v1/activities/{group['id']}/expenses"
+    path = base + f"/{original['id']}"
+    headers = actors["alice"]["headers"]
+    history_before = client.get(
+        f"/api/v1/activities/{group['id']}/audit-logs", headers=headers
+    ).json()
+
+    def fail_audit(*_args, **_kwargs):
+        raise RuntimeError("injected audit failure")
+
+    monkeypatch.setattr(expense_service, "record_audit", fail_audit)
+    with pytest.raises(RuntimeError, match="injected audit failure"):
+        if operation == "create":
+            client.post(base, headers=headers, json=expense_data)
+        elif operation == "update":
+            client.patch(path, headers=headers, json={"version": 1, "amount_cents": 12345})
+        else:
+            client.delete(path + "?version=1", headers=headers)
+    assert client.get(path, headers=headers).json() == original
+    assert len(client.get(base, headers=headers).json()) == 1
+    assert (
+        client.get(f"/api/v1/activities/{group['id']}/audit-logs", headers=headers).json()
+        == history_before
     )
 
 
