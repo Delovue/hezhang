@@ -8,12 +8,18 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domain.payment import check_request_retry, validate_new_payment
+from app.domain.payment import (
+    PaymentAction,
+    apply_payment_action,
+    check_request_retry,
+    validate_new_payment,
+)
 from app.models import Membership, Payment, User
 from app.schemas import PaymentCreate, PaymentRead
 from app.services.activity import require_activity
 from app.services.audit import record_audit
 from app.services.balance import load_balances, require_members
+from app.services.lifecycle import settle_if_cleared
 
 
 def current_member(session: Session, activity_id: int, user_id: int) -> Membership:
@@ -80,3 +86,59 @@ def create_payment(
         after=payment_snapshot(payment),
     )
     return payment, True
+
+
+def require_payment(session: Session, activity_id: int, payment_id: int) -> Payment:
+    payment = session.scalar(
+        select(Payment).where(Payment.id == payment_id, Payment.activity_id == activity_id)
+    )
+    if payment is None:
+        raise HTTPException(404, "付款不存在")
+    return payment
+
+
+_AUDIT_ACTIONS = {
+    PaymentAction.CONFIRM: "PAYMENT_CONFIRMED",
+    PaymentAction.REJECT: "PAYMENT_REJECTED",
+    PaymentAction.CANCEL: "PAYMENT_CANCELLED",
+}
+
+
+def change_payment(
+    session: Session, activity_id: int, payment_id: int, user: User, action: PaymentAction
+) -> Payment:
+    """确认、拒绝或撤销付款。
+
+    写锁保证确认、拒绝与撤销竞争时后到的请求读到已变更的状态，只有一个终态成功。
+    同一操作者重复执行同一动作直接返回，不再写入付款或历史。
+    """
+    activity = require_activity(session, activity_id, user.id)
+    payment = require_payment(session, activity_id, payment_id)
+    actor = current_member(session, activity_id, user.id)
+    transition = apply_payment_action(
+        activity.status,
+        payment.status,
+        action,
+        actor.id,
+        payment.payer_member_id,
+        payment.payee_member_id,
+    )
+    if not transition.changed:
+        return payment
+
+    before = payment_snapshot(payment)
+    payment.status = transition.status
+    session.flush()
+    session.refresh(payment)
+    record_audit(
+        session,
+        activity_id=activity_id,
+        actor_user_id=user.id,
+        action=_AUDIT_ACTIONS[action],
+        object_type="payment",
+        object_id=payment.id,
+        before=before,
+        after=payment_snapshot(payment),
+    )
+    settle_if_cleared(session, activity, user)
+    return payment
