@@ -8,6 +8,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from app.domain.errors import InvalidInputError
+from app.errors import ErrorCode
 from app.models import SplitMethod
 from app.schemas import ShareRead, SplitInput
 
@@ -33,24 +34,24 @@ def _is_int(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def validate_amount(amount_cents: object) -> int:
-    """校验费用总额为正整数分。"""
+def validate_amount(amount_cents: object, code: ErrorCode = ErrorCode.INVALID_EXPENSE) -> int:
+    """校验金额为正整数分。"""
     if not _is_int(amount_cents):
-        raise InvalidInputError("金额必须是整数分")
+        raise InvalidInputError(code, "金额必须是整数分")
     if amount_cents <= 0:
-        raise InvalidInputError("金额必须大于 0")
+        raise InvalidInputError(code, "金额必须大于 0")
     return amount_cents
 
 
 def validate_members(member_ids: Sequence[object]) -> list[int]:
     """校验分摊成员非空、为整数 ID 且不重复，返回升序排列的 ID。"""
     if not member_ids:
-        raise InvalidInputError("至少需要一名分摊成员")
+        raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "至少需要一名分摊成员")
     for member_id in member_ids:
         if not _is_int(member_id):
-            raise InvalidInputError("成员 ID 必须是整数")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "成员 ID 必须是整数")
     if len(set(member_ids)) != len(member_ids):
-        raise InvalidInputError("分摊成员不能重复")
+        raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "分摊成员不能重复")
     return sorted(member_ids)
 
 
@@ -74,12 +75,14 @@ def split_exact(amount_cents: int, amounts: Mapping[int, int]) -> dict[int, int]
     for member_id in ordered:
         share = amounts[member_id]
         if not _is_int(share):
-            raise InvalidInputError("指定金额必须是整数分")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "指定金额必须是整数分")
         if share < 0:
-            raise InvalidInputError("指定金额不能为负数")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "指定金额不能为负数")
     total = sum(amounts.values())
     if total != amount_cents:
-        raise InvalidInputError(f"指定金额合计 {total} 分，与总额 {amount_cents} 分不一致")
+        raise InvalidInputError(
+            ErrorCode.INVALID_EXPENSE, f"指定金额合计 {total} 分，与总额 {amount_cents} 分不一致"
+        )
     return {member_id: amounts[member_id] for member_id in ordered}
 
 
@@ -94,9 +97,9 @@ def split_shares(amount_cents: int, shares: Mapping[int, int]) -> dict[int, int]
     for member_id in ordered:
         count = shares[member_id]
         if not _is_int(count):
-            raise InvalidInputError("份数必须是整数")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "份数必须是整数")
         if count <= 0:
-            raise InvalidInputError("份数必须是正整数")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "份数必须是正整数")
     total_shares = sum(shares.values())
 
     # 用整数除法得到整数部分和余数，避免浮点误差
@@ -125,16 +128,16 @@ def compute_split(
         return [ShareResult(m, amounts[m]) for m in member_ids]
     if method == SplitMethod.EXACT:
         if any(p.amount_cents is None for p in participants):
-            raise InvalidInputError("指定金额分摊需要填写每位成员的金额")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "指定金额分摊需要填写每位成员的金额")
         amounts = split_exact(amount_cents, {m: by_member[m].amount_cents for m in member_ids})
         return [ShareResult(m, amounts[m]) for m in member_ids]
     if method == SplitMethod.SHARES:
         if any(p.shares is None for p in participants):
-            raise InvalidInputError("按份数分摊需要填写每位成员的份数")
+            raise InvalidInputError(ErrorCode.INVALID_EXPENSE, "按份数分摊需要填写每位成员的份数")
         counts = {m: by_member[m].shares for m in member_ids}
         amounts = split_shares(amount_cents, counts)
         return [ShareResult(m, amounts[m], counts[m]) for m in member_ids]
-    raise InvalidInputError(f"不支持的分摊方式：{method}")
+    raise InvalidInputError(ErrorCode.INVALID_EXPENSE, f"不支持的分摊方式：{method}")
 
 
 def calculate_split(spec: SplitInput) -> list[ShareRead]:

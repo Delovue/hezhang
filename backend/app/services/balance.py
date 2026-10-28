@@ -2,11 +2,11 @@
 
 from collections.abc import Iterable
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.balance import ExpenseEntry, MemberBalance, PaymentEntry, compute_balances
+from app.errors import ApiError, ErrorCode
 from app.models import Expense, Membership, Payment, PaymentStatus
 
 
@@ -20,9 +20,11 @@ def member_ids(session: Session, activity_id: int) -> list[int]:
     )
 
 
-def require_members(session: Session, activity_id: int, ids: Iterable[int]) -> None:
+def require_members(
+    session: Session, activity_id: int, ids: Iterable[int], code: ErrorCode
+) -> None:
     if not set(ids) <= set(member_ids(session, activity_id)):
-        raise HTTPException(422, "所选成员必须属于本活动")
+        raise ApiError(422, code, "所选成员必须属于本活动")
 
 
 def expense_entries(session: Session, activity_id: int) -> list[ExpenseEntry]:

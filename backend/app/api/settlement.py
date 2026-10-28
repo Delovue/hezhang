@@ -4,6 +4,7 @@ from app.api.dependencies import CurrentUser, Database
 from app.api.parameters import ResourceId
 from app.domain.settlement import suggest_transfers
 from app.domain.split import calculate_split
+from app.errors import ErrorCode
 from app.schemas import ActivityRead, MemberBalanceRead, ShareRead, SplitInput, TransferRead
 from app.services.activity import activity_read, require_activity
 from app.services.balance import load_balances, require_members
@@ -16,7 +17,12 @@ router = APIRouter(prefix="/activities/{activity_id}", tags=["余额与结算"])
 def split_preview(activity_id: ResourceId, data: SplitInput, session: Database, user: CurrentUser):
     """与保存费用使用同一个分摊函数，只计算不保存。"""
     require_activity(session, activity_id, user.id)
-    require_members(session, activity_id, (item.member_id for item in data.participants))
+    require_members(
+        session,
+        activity_id,
+        (item.member_id for item in data.participants),
+        ErrorCode.EXPENSE_MEMBER_MISMATCH,
+    )
     return calculate_split(data)
 
 

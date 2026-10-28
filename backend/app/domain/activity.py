@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 from app.domain.balance import MemberBalance
 from app.domain.errors import PermissionDeniedError, StateConflictError
+from app.errors import ErrorCode
 from app.models import ActivityStatus
 
 
@@ -24,18 +25,22 @@ def is_cleared(balances: Sequence[MemberBalance]) -> bool:
 def ensure_ledger_editable(status: ActivityStatus) -> None:
     """成员加入、费用增删改和预算修改前调用。"""
     if status != ActivityStatus.ACTIVE:
-        raise StateConflictError("活动已发起结算，成员、费用和预算不能再修改")
+        raise StateConflictError(
+            ErrorCode.ACTIVITY_LOCKED, "活动已发起结算，成员、费用和预算不能再修改"
+        )
 
 
 def ensure_payments_open(status: ActivityStatus) -> None:
     """登记付款和改变付款状态前调用。"""
     if status != ActivityStatus.SETTLING:
-        raise StateConflictError("只有结算中的活动可以处理付款")
+        raise StateConflictError(ErrorCode.PAYMENTS_CLOSED, "只有结算中的活动可以处理付款")
 
 
 def _ensure_creator(actor_id: int, creator_id: int, action: str) -> None:
     if actor_id != creator_id:
-        raise PermissionDeniedError(f"只有活动创建者可以{action}")
+        raise PermissionDeniedError(
+            ErrorCode.ACTIVITY_OWNER_REQUIRED, f"只有活动创建者可以{action}"
+        )
 
 
 def start_settlement(
@@ -47,7 +52,7 @@ def start_settlement(
     """创建者发起结算。发起时已满足结清条件则直接进入 SETTLED。"""
     _ensure_creator(actor_id, creator_id, "发起结算")
     if status != ActivityStatus.ACTIVE:
-        raise StateConflictError("活动已发起过结算")
+        raise StateConflictError(ErrorCode.SETTLEMENT_ALREADY_STARTED, "活动已发起过结算")
     return ActivityStatus.SETTLED if is_cleared(balances) else ActivityStatus.SETTLING
 
 
@@ -61,5 +66,5 @@ def settle_if_cleared(status: ActivityStatus, balances: Sequence[MemberBalance])
 def archive(status: ActivityStatus, actor_id: int, creator_id: int) -> ActivityStatus:
     _ensure_creator(actor_id, creator_id, "归档活动")
     if status != ActivityStatus.SETTLED:
-        raise StateConflictError("活动尚未结清，不能归档")
+        raise StateConflictError(ErrorCode.ACTIVITY_NOT_SETTLED, "活动尚未结清，不能归档")
     return ActivityStatus.ARCHIVED

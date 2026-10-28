@@ -4,7 +4,6 @@
 因此两笔并发登记不会同时通过额度检查。
 """
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,6 +13,7 @@ from app.domain.payment import (
     check_request_retry,
     validate_new_payment,
 )
+from app.errors import ApiError, ErrorCode
 from app.models import Membership, Payment, User
 from app.schemas import PaymentCreate, PaymentRead
 from app.services.activity import require_activity
@@ -29,7 +29,7 @@ def current_member(session: Session, activity_id: int, user_id: int) -> Membersh
         )
     )
     if member is None:
-        raise HTTPException(404, "活动不存在")
+        raise ApiError(404, ErrorCode.ACTIVITY_NOT_FOUND, "活动不存在")
     return member
 
 
@@ -61,7 +61,7 @@ def create_payment(
         # 重试可能发生在活动结清之后，只读返回原记录，不再检查状态和额度
         return existing, False
 
-    require_members(session, activity_id, [data.payee_member_id])
+    require_members(session, activity_id, [data.payee_member_id], ErrorCode.INVALID_PAYMENT)
     balances = {b.member_id: b for b in load_balances(session, activity_id)}
     validate_new_payment(
         activity.status, balances[payer.id], balances[data.payee_member_id], data.amount_cents
@@ -93,7 +93,7 @@ def require_payment(session: Session, activity_id: int, payment_id: int) -> Paym
         select(Payment).where(Payment.id == payment_id, Payment.activity_id == activity_id)
     )
     if payment is None:
-        raise HTTPException(404, "付款不存在")
+        raise ApiError(404, ErrorCode.PAYMENT_NOT_FOUND, "付款不存在")
     return payment
 
 

@@ -14,6 +14,7 @@ from app.domain.errors import InvalidInputError, PermissionDeniedError, StateCon
 from app.domain.money import format_cents
 from app.domain.split import validate_amount
 from app.domain.status import PAYMENT_STATUS_LABELS
+from app.errors import ErrorCode
 from app.models import ActivityStatus, PaymentStatus
 
 
@@ -28,16 +29,18 @@ def validate_new_payment(
     超出可登记额度属于业务状态冲突（409）：同样的金额在别的付款被拒绝后可能合法。
     """
     ensure_payments_open(activity_status)
-    validate_amount(amount_cents)
+    validate_amount(amount_cents, ErrorCode.INVALID_PAYMENT)
     if payer.member_id == payee.member_id:
-        raise InvalidInputError("付款人和收款人不能是同一人")
+        raise InvalidInputError(ErrorCode.INVALID_PAYMENT, "付款人和收款人不能是同一人")
     if amount_cents > payer.available_out_cents:
         raise StateConflictError(
-            f"付款金额超过付款人可登记额度 {format_cents(payer.available_out_cents)} 元"
+            ErrorCode.PAYMENT_QUOTA_EXCEEDED,
+            f"付款金额超过付款人可登记额度 {format_cents(payer.available_out_cents)} 元",
         )
     if amount_cents > payee.available_in_cents:
         raise StateConflictError(
-            f"付款金额超过收款人可登记额度 {format_cents(payee.available_in_cents)} 元"
+            ErrorCode.PAYMENT_QUOTA_EXCEEDED,
+            f"付款金额超过收款人可登记额度 {format_cents(payee.available_in_cents)} 元",
         )
 
 
@@ -52,7 +55,7 @@ def check_request_retry(
     内容一致说明是重试，服务层直接返回原记录；内容不同则拒绝复用该 ID。
     """
     if existing_payee_id != payee_id or existing_amount_cents != amount_cents:
-        raise StateConflictError("该请求编号已用于另一笔付款")
+        raise StateConflictError(ErrorCode.REQUEST_ID_CONFLICT, "该请求编号已用于另一笔付款")
 
 
 class PaymentAction(StrEnum):
@@ -91,7 +94,9 @@ def apply_payment_action(
     allowed_actor = payer_id if action == PaymentAction.CANCEL else payee_id
     if actor_id != allowed_actor:
         role = "付款人" if action == PaymentAction.CANCEL else "收款人"
-        raise PermissionDeniedError(f"只有{role}可以{_ACTION_LABELS[action]}这笔付款")
+        raise PermissionDeniedError(
+            ErrorCode.PAYMENT_ACTION_FORBIDDEN, f"只有{role}可以{_ACTION_LABELS[action]}这笔付款"
+        )
 
     target = _TARGET_STATUS[action]
     if status == target:
@@ -99,7 +104,8 @@ def apply_payment_action(
         return PaymentTransition(status, changed=False)
     if status != PaymentStatus.PENDING:
         raise StateConflictError(
-            f"付款{PAYMENT_STATUS_LABELS[status]}，不能再{_ACTION_LABELS[action]}"
+            ErrorCode.PAYMENT_STATUS_CONFLICT,
+            f"付款{PAYMENT_STATUS_LABELS[status]}，不能再{_ACTION_LABELS[action]}",
         )
     ensure_payments_open(activity_status)
     return PaymentTransition(target, changed=True)

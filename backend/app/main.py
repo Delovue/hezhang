@@ -26,9 +26,9 @@ from app.errors import API_ERROR_RESPONSES, ApiError, ErrorCode, error_response
 logger = logging.getLogger(__name__)
 
 DOMAIN_ERROR_STATUS = {
-    InvalidInputError: (422, ErrorCode.VALIDATION_ERROR),
-    PermissionDeniedError: (403, ErrorCode.HTTP_ERROR),
-    StateConflictError: (409, ErrorCode.DATA_CONFLICT),
+    InvalidInputError: 422,
+    PermissionDeniedError: 403,
+    StateConflictError: 409,
 }
 
 
@@ -89,8 +89,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(DomainError)
     async def domain_error(_request: Request, exc: DomainError):
-        status_code, code = DOMAIN_ERROR_STATUS[type(exc)]
-        return error_response(status_code, code, exc.message)
+        return error_response(DOMAIN_ERROR_STATUS[type(exc)], exc.code, exc.message)
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(_request: Request, _exc: IntegrityError):
