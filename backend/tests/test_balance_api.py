@@ -1,34 +1,7 @@
 import pytest
 
+from tests.conftest import trip_expenses
 from tests.test_expenses import create
-
-
-def trip_expenses(group):
-    """README 三人出游示例：alice 垫付餐费 120 元三人均摊，bob 垫付车费 60 元仅 alice、bob 分摊。"""
-    ids = group["member_ids"]
-    base = {"category": "餐饮", "expense_date": "2026-10-27", "split_method": "EQUAL"}
-    meal = base | {
-        "title": "晚餐",
-        "amount_cents": 12000,
-        "payer_member_id": ids["alice"],
-        "participants": [{"member_id": ids[name]} for name in ["alice", "bob", "charlie"]],
-    }
-    taxi = base | {
-        "title": "打车",
-        "category": "交通",
-        "amount_cents": 6000,
-        "payer_member_id": ids["bob"],
-        "participants": [{"member_id": ids[name]} for name in ["alice", "bob"]],
-    }
-    return meal, taxi
-
-
-@pytest.fixture
-def trip(client, actors, group):
-    meal, taxi = trip_expenses(group)
-    create(client, actors, group, meal)
-    create(client, actors, group, taxi, actor="bob")
-    return group
 
 
 def get(client, actors, group, path, actor="alice"):
