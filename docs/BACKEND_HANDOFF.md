@@ -87,13 +87,17 @@ EXACT 的参与人填写 member_id、amount_cents；SHARES 填写 member_id、sh
 
 | 方法与路径 | 行为 |
 | --- | --- |
-| GET /activities/{id}/expenses | 按 category、payer_member_id、start_date、end_date 筛选；日期区间包含端点 |
+| GET /activities/{id}/expenses | 按 category、payer_member_id、participant_member_id、q、start_date、end_date 组合筛选；日期区间包含端点 |
 | GET /activities/{id}/expenses/{expense_id} | 查询单笔有效费用 |
 | PATCH /activities/{id}/expenses/{expense_id} | 携带当前 version 和需要变更的字段 |
 | DELETE /activities/{id}/expenses/{expense_id}?version=2 | 软删除；成功返回 204 |
 | GET /activities/{id}/audit-logs | 按操作 id 倒序查询历史 |
 
-上表路径均需加 /api/v1 前缀。PATCH 示例：
+上表路径均需加 /api/v1 前缀。
+
+费用查询的 q 搜索标题和备注中的字面子串，忽略 ASCII 字母大小写，裁剪首尾空格后长度为 1–120；不搜索时省略 q。百分号、下划线和斜线按普通字符匹配。participant_member_id 用成员 ID 筛选参与分摊的费用，与付款人不同；指定承担零分的参与人也算参与。筛选可叠加，按费用日期倒序、同日按费用 id 倒序分页，始终排除软删除记录。
+
+PATCH 示例：
 
 ~~~json
 {"version":1,"amount_cents":12000}

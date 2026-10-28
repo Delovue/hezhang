@@ -1,11 +1,11 @@
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.api.dependencies import CurrentUser, Database
-from app.api.parameters import Limit, Offset, OptionalQueryId, QueryId, ResourceId
-from app.models import Expense
+from app.api.parameters import Limit, Offset, OptionalQueryId, QueryId, ResourceId, Search
+from app.models import Expense, ExpenseShare
 from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
 from app.services.activity import require_activity
 from app.services.expense import (
@@ -30,6 +30,8 @@ def list_expenses(
     user: CurrentUser,
     category: str | None = None,
     payer_member_id: OptionalQueryId = None,
+    participant_member_id: OptionalQueryId = None,
+    q: Search = None,
     start_date: date | None = None,
     end_date: date | None = None,
     limit: Limit = 50,
@@ -43,6 +45,15 @@ def list_expenses(
         query = query.where(Expense.category == category)
     if payer_member_id is not None:
         query = query.where(Expense.payer_member_id == payer_member_id)
+    if participant_member_id is not None:
+        query = query.where(Expense.shares.any(ExpenseShare.member_id == participant_member_id))
+    if q is not None:
+        query = query.where(
+            or_(
+                Expense.title.icontains(q, autoescape=True),
+                Expense.notes.icontains(q, autoescape=True),
+            )
+        )
     if start_date is not None:
         query = query.where(Expense.expense_date >= start_date)
     if end_date is not None:
