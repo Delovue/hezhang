@@ -18,9 +18,22 @@ from app.services.expense import (
 router = APIRouter(prefix="/activities/{activity_id}/expenses", tags=["费用"])
 
 
-@router.post("", response_model=ExpenseRead, status_code=201)
-def create(activity_id: ResourceId, data: ExpenseCreate, session: Database, user: CurrentUser):
-    return create_expense(session, activity_id, user, data)
+@router.post(
+    "",
+    response_model=ExpenseRead,
+    status_code=201,
+    responses={200: {"model": ExpenseRead, "description": "重复请求，返回已创建费用的当前版本"}},
+)
+def create(
+    activity_id: ResourceId,
+    data: ExpenseCreate,
+    response: Response,
+    session: Database,
+    user: CurrentUser,
+):
+    expense, created = create_expense(session, activity_id, user, data)
+    response.status_code = 201 if created else 200
+    return expense
 
 
 @router.get("", response_model=list[ExpenseRead])

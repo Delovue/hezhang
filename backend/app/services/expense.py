@@ -1,11 +1,14 @@
+import hashlib
+import json
+
 from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.split import calculate_split
-from app.models import Expense, ExpenseShare, Membership, SplitMethod, User
-from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
+from app.models import Expense, ExpenseRequest, ExpenseShare, Membership, SplitMethod, User
+from app.schemas import ExpenseCreate, ExpenseFields, ExpensePatch, ExpenseRead
 from app.services.activity import require_active, require_activity
 from app.services.audit import record_audit
 
@@ -33,7 +36,7 @@ def require_version(expense: Expense, expected: int) -> None:
         raise HTTPException(409, "费用已被修改，请刷新后重试")
 
 
-def validate_members(session: Session, activity_id: int, data: ExpenseCreate) -> None:
+def validate_members(session: Session, activity_id: int, data: ExpenseFields) -> None:
     member_ids = {item.member_id for item in data.participants} | {data.payer_member_id}
     found = set(
         session.scalars(
@@ -52,25 +55,65 @@ def expense_snapshot(expense: Expense) -> dict:
     return result
 
 
-def attach_shares(expense: Expense, data: ExpenseCreate) -> None:
+def attach_shares(expense: Expense, data: ExpenseFields) -> None:
     expense.shares = [
         ExpenseShare(activity_id=expense.activity_id, **item.model_dump())
         for item in calculate_split(data)
     ]
 
 
-def create_expense(session: Session, activity_id: int, user: User, data: ExpenseCreate) -> Expense:
+def creation_fingerprint(data: ExpenseCreate) -> str:
+    payload = data.model_dump(mode="json", exclude={"request_id"})
+    # Member order, omitted defaults and JSON field order do not change an expense.
+    payload["participants"].sort(key=lambda participant: participant["member_id"])
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def create_expense(
+    session: Session, activity_id: int, user: User, data: ExpenseCreate
+) -> tuple[Expense, bool]:
+    """Return the current expense and whether this request newly created it."""
     activity = require_activity(session, activity_id, user.id)
+    request_key = str(data.request_id) if data.request_id is not None else None
+    fingerprint = creation_fingerprint(data) if request_key is not None else None
+    if request_key is not None:
+        existing = session.scalar(
+            select(ExpenseRequest).where(
+                ExpenseRequest.activity_id == activity_id,
+                ExpenseRequest.created_by_id == user.id,
+                ExpenseRequest.request_id == request_key,
+            )
+        )
+        if existing is not None:
+            if existing.payload_hash != fingerprint:
+                raise HTTPException(409, "request_id 已用于其他费用内容，请勿修改原请求后重试")
+            expense = session.get(Expense, existing.expense_id)
+            if expense is None or expense.is_deleted:
+                raise HTTPException(409, "原请求对应的费用已被删除，请刷新账本")
+            # A successful creation may be retried after editing or sealing. This is read-only.
+            return expense, False
     require_active(activity)
     validate_members(session, activity_id, data)
     expense = Expense(
         activity_id=activity_id,
         created_by_id=user.id,
-        **data.model_dump(exclude={"participants"}),
+        **data.model_dump(exclude={"participants", "request_id"}),
     )
     attach_shares(expense, data)
     session.add(expense)
     session.flush()
+    if request_key is not None:
+        session.add(
+            ExpenseRequest(
+                activity_id=activity_id,
+                created_by_id=user.id,
+                request_id=request_key,
+                payload_hash=fingerprint,
+                expense_id=expense.id,
+            )
+        )
+        session.flush()
     record_audit(
         session,
         activity_id=activity_id,
@@ -80,7 +123,7 @@ def create_expense(session: Session, activity_id: int, user: User, data: Expense
         object_id=expense.id,
         after=expense_snapshot(expense),
     )
-    return expense
+    return expense, True
 
 
 def original_input(expense: Expense) -> dict:
@@ -119,7 +162,7 @@ def update_expense(
     merged = original_input(expense)
     merged.update(patch.model_dump(exclude_unset=True, exclude={"version"}))
     try:
-        data = ExpenseCreate.model_validate(merged)
+        data = ExpenseFields.model_validate(merged)
     except ValidationError as exc:
         raise HTTPException(422, "; ".join(error["msg"] for error in exc.errors())) from None
     validate_members(session, activity_id, data)

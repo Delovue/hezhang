@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 from typing import Annotated, Literal, Self
 
 from pydantic import (
+    UUID4,
     BaseModel,
     ConfigDict,
     Field,
@@ -122,12 +123,19 @@ class SplitInput(Schema):
         return self
 
 
-class ExpenseCreate(SplitInput):
+class ExpenseFields(SplitInput):
     payer_member_id: PositiveId
     title: Title
     category: Category
     expense_date: date
     notes: str | None = Field(default=None, max_length=1000)
+
+
+class ExpenseCreate(ExpenseFields):
+    request_id: UUID4 | None = Field(
+        default=None,
+        description="同一次费用保存使用同一个 UUID v4；相同请求重试不会重复记账",
+    )
 
 
 class ExpensePatch(Schema):
