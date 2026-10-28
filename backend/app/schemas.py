@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models import MAX_CENTS, MAX_IDENTIFIER, ActivityStatus, SplitMethod
+from app.models import MAX_CENTS, MAX_IDENTIFIER, ActivityStatus, PaymentStatus, SplitMethod
 
 Cents = Annotated[int, Field(strict=True, ge=0, le=MAX_CENTS)]
 PositiveCents = Annotated[int, Field(strict=True, gt=0, le=MAX_CENTS)]
@@ -215,3 +215,27 @@ class TransferRead(Schema):
     payer_member_id: int
     payee_member_id: int
     amount_cents: int
+
+
+class PaymentCreate(Schema):
+    payee_member_id: PositiveId
+    amount_cents: PositiveCents
+    request_id: UUID4 = Field(
+        description="同一次付款登记使用同一个 UUID v4；相同请求重试不会重复登记"
+    )
+
+
+class PaymentRead(Schema):
+    id: int
+    activity_id: int
+    payer_member_id: int
+    payee_member_id: int
+    amount_cents: int
+    status: PaymentStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("created_at", "updated_at")
+    @classmethod
+    def include_timezone(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value
