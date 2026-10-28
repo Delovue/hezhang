@@ -6,11 +6,12 @@ from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
 from app.models import Expense
-from app.schemas import ExpenseCreate, ExpenseRead
+from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
 from app.services.activity import require_activity
 from app.services.expense import (
     create_expense,
     require_expense,
+    update_expense,
 )
 
 router = APIRouter(prefix="/activities/{activity_id}/expenses", tags=["费用"])
@@ -54,3 +55,14 @@ def list_expenses(
 def detail(activity_id: int, expense_id: int, session: Database, user: CurrentUser):
     require_activity(session, activity_id, user.id)
     return require_expense(session, activity_id, expense_id)
+
+
+@router.patch("/{expense_id}", response_model=ExpenseRead)
+def update(
+    activity_id: int,
+    expense_id: int,
+    data: ExpensePatch,
+    session: Database,
+    user: CurrentUser,
+):
+    return update_expense(session, activity_id, expense_id, user, data)
