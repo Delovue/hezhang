@@ -172,10 +172,10 @@ def test_budget_strict_integer_and_unknown_fields(client, actors):
 
 
 def test_migration_roundtrip_and_health(client, settings):
-    assert client.get("/health").json()["schema_revision"] == "0001"
+    assert client.get("/health").json()["schema_revision"] == "0002"
     config = migration_config(settings.database_url)
     command.check(config)
-    # Empty test database only: verify the initial migration can be reversed.
+    # Empty test database only: verify the migration chain can be reversed.
     command.downgrade(config, "base")
     engine = build_engine(settings.database_url)
     assert inspect(engine).get_table_names() == ["alembic_version"]

@@ -1,7 +1,9 @@
 import logging
 import sqlite3
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from alembic.script import ScriptDirectory
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
+    expected_revision = ScriptDirectory(
+        str(Path(__file__).resolve().parents[1] / "migrations")
+    ).get_current_head()
+    if expected_revision is None:
+        raise RuntimeError("No database migration is configured")
     engine = build_engine(settings.database_url)
 
     @asynccontextmanager
@@ -71,13 +78,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health():
         try:
             with transaction(engine) as session:
-                revision = session.scalar(text("SELECT version_num FROM alembic_version"))
-            if not revision:
-                raise ValueError("No schema revision")
-        except (SQLAlchemyError, ValueError):
+                revisions = session.scalars(text("SELECT version_num FROM alembic_version")).all()
+        except SQLAlchemyError:
             return JSONResponse(
                 status_code=503, content={"status": "not_ready", "detail": "请先执行数据库迁移"}
             )
-        return {"status": "ok", "schema_revision": revision}
+        if revisions != [expected_revision]:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "not_ready",
+                    "detail": "数据库结构与当前代码不匹配，请执行数据库迁移",
+                    "expected_schema_revision": expected_revision,
+                },
+            )
+        return {"status": "ok", "schema_revision": expected_revision}
 
     return app

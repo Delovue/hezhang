@@ -143,6 +143,26 @@ class ExpenseShare(Base):
     shares: Mapped[int | None] = mapped_column(Integer)
 
 
+class ExpenseRequest(Base):
+    __tablename__ = "expense_requests"
+    __table_args__ = (
+        UniqueConstraint("activity_id", "created_by_id", "request_id"),
+        UniqueConstraint("expense_id"),
+        ForeignKeyConstraint(
+            ["expense_id", "activity_id"], ["expenses.id", "expenses.activity_id"]
+        ),
+        CheckConstraint("length(request_id) = 36", name="request_id_length"),
+        CheckConstraint("length(payload_hash) = 64", name="payload_hash_length"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"))
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    request_id: Mapped[str] = mapped_column(String(36))
+    payload_hash: Mapped[str] = mapped_column(String(64))
+    expense_id: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(), server_default=func.now())
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id: Mapped[int] = mapped_column(primary_key=True)
