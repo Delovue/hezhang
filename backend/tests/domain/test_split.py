@@ -3,7 +3,7 @@ import itertools
 import pytest
 
 from app.domain.errors import InvalidInputError
-from app.domain.split import split_equal
+from app.domain.split import split_equal, split_exact
 
 
 def test_t01_equal_split_100_yuan_among_three():
@@ -36,3 +36,26 @@ def test_equal_split_rejects_invalid_amount(amount):
 def test_equal_split_rejects_invalid_members(members):
     with pytest.raises(InvalidInputError):
         split_equal(100, members)
+
+
+def test_exact_split_keeps_given_amounts():
+    assert split_exact(10000, {3: 5000, 1: 2000, 2: 3000}) == {1: 2000, 2: 3000, 3: 5000}
+
+
+def test_exact_split_allows_zero_share():
+    assert split_exact(600, {1: 600, 2: 0}) == {1: 600, 2: 0}
+
+
+@pytest.mark.parametrize(
+    "amounts",
+    [
+        {1: 2000, 2: 3000, 3: 4999},  # 合计少 1 分
+        {1: 2000, 2: 3000, 3: 5001},  # 合计多 1 分
+        {1: 11000, 2: -1000},  # 负份额
+        {1: 5000.0, 2: 5000},  # 非整数分
+        {},
+    ],
+)
+def test_t04_exact_split_rejects_invalid_amounts(amounts):
+    with pytest.raises(InvalidInputError):
+        split_exact(10000, amounts)

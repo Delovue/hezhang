@@ -4,7 +4,7 @@
 并保证各成员份额之和严格等于费用总额。
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from app.domain.errors import InvalidInputError
 
@@ -47,3 +47,19 @@ def split_equal(amount_cents: int, member_ids: Sequence[int]) -> dict[int, int]:
         member_id: base + (1 if index < remainder else 0)
         for index, member_id in enumerate(ordered)
     }
+
+
+def split_exact(amount_cents: int, amounts: Mapping[int, int]) -> dict[int, int]:
+    """指定金额：各成员份额为非负整数分，合计必须严格等于总额。"""
+    amount_cents = validate_amount(amount_cents)
+    ordered = validate_members(list(amounts))
+    for member_id in ordered:
+        share = amounts[member_id]
+        if not _is_int(share):
+            raise InvalidInputError("指定金额必须是整数分")
+        if share < 0:
+            raise InvalidInputError("指定金额不能为负数")
+    total = sum(amounts.values())
+    if total != amount_cents:
+        raise InvalidInputError(f"指定金额合计 {total} 分，与总额 {amount_cents} 分不一致")
+    return {member_id: amounts[member_id] for member_id in ordered}
