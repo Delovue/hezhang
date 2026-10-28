@@ -1,10 +1,11 @@
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Response
 from sqlalchemy import or_, select
 
 from app.api.dependencies import CurrentUser, Database
 from app.api.parameters import Limit, Offset, OptionalQueryId, QueryId, ResourceId, Search
+from app.errors import ApiError, ErrorCode
 from app.models import Expense, ExpenseShare
 from app.schemas import ExpenseCreate, ExpensePatch, ExpenseRead
 from app.services.activity import require_activity
@@ -52,7 +53,7 @@ def list_expenses(
 ):
     require_activity(session, activity_id, user.id)
     if start_date and end_date and start_date > end_date:
-        raise HTTPException(422, "开始日期不能晚于结束日期")
+        raise ApiError(422, ErrorCode.INVALID_QUERY, "开始日期不能晚于结束日期")
     query = select(Expense).where(Expense.activity_id == activity_id, Expense.is_deleted.is_(False))
     if category is not None:
         query = query.where(Expense.category == category)

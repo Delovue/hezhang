@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
 from app.api.parameters import Limit, Offset, OptionalQueryId, ResourceId, Search
+from app.errors import ApiError, ErrorCode
 from app.models import Activity, ActivityStatus, AuditLog, Membership
 from app.schemas import (
     ActivityCreate,
@@ -42,7 +43,7 @@ def list_activities(
     offset: Offset = 0,
 ):
     if before_id is not None and offset:
-        raise HTTPException(422, "before_id 不能与非零 offset 同时使用")
+        raise ApiError(422, ErrorCode.INVALID_QUERY, "before_id 不能与非零 offset 同时使用")
     query = (
         select(Activity)
         .join(Membership, Membership.activity_id == Activity.id)
@@ -95,9 +96,9 @@ def audit_logs(
 ):
     require_activity(session, activity_id, user.id)
     if object_id is not None and object_type is None:
-        raise HTTPException(422, "按对象编号查询时必须同时提供 object_type")
+        raise ApiError(422, ErrorCode.INVALID_QUERY, "按对象编号查询时必须同时提供 object_type")
     if before_id is not None and offset:
-        raise HTTPException(422, "before_id 不能与非零 offset 同时使用")
+        raise ApiError(422, ErrorCode.INVALID_QUERY, "before_id 不能与非零 offset 同时使用")
     query = select(AuditLog).where(AuditLog.activity_id == activity_id)
     if action is not None:
         query = query.where(AuditLog.action == action)

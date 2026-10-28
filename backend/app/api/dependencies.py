@@ -2,11 +2,12 @@ from collections.abc import Iterator
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.database import transaction
+from app.errors import ApiError, ErrorCode
 from app.models import User
 from app.security import decode_access_token
 
@@ -30,8 +31,11 @@ def current_user(
     session: Database,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> User:
-    unauthorized = HTTPException(
-        status_code=401, detail="请先登录或重新登录", headers={"WWW-Authenticate": "Bearer"}
+    unauthorized = ApiError(
+        status_code=401,
+        code=ErrorCode.AUTHENTICATION_REQUIRED,
+        detail="请先登录或重新登录",
+        headers={"WWW-Authenticate": "Bearer"},
     )
     if credentials is None:
         raise unauthorized

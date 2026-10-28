@@ -145,6 +145,12 @@ GET /api/v1/activities/{id}/audit-logs 支持以下可组合的参数，仍返�
 
 ## 错误处理约定
 
+业务接口错误在原有 detail 之外增加稳定的 code 和布尔值 retryable；HTTP 状态和原中文提示保持原含义。前端按 code 分支处理，不依赖中文文本匹配。例如：
+
+~~~json
+{"detail":"费用已被修改，请刷新后重试","code":"EXPENSE_VERSION_CONFLICT","retryable":false}
+~~~
+
 | HTTP 状态 | 前端处理 |
 | --- | --- |
 | 401 | 登录失效或凭证错误，提示重新登录 |
@@ -152,9 +158,31 @@ GET /api/v1/activities/{id}/audit-logs 支持以下可组合的参数，仍返�
 | 404 | 资源不存在，或不属于用户可访问的活动 |
 | 409 | 版本冲突、活动已封账、唯一约束冲突或数据库暂时忙 |
 | 422 | 字段格式或业务输入校验失败 |
+| 500 | 未预期错误；先核对是否已有结果，不盲目再次新增 |
 | 503 | 数据库未准备好，检查迁移和运行环境 |
 
 detail 可能是字符串，也可能是字段错误数组。数组项包含 loc、msg、type，不回显输入的密码。无论页面是否禁用按钮，都以接口返回为准。
+
+| code | 恢复方式 |
+| --- | --- |
+| AUTHENTICATION_REQUIRED | 清理失效令牌并重新登录；保留未提交的表单 |
+| INVALID_CREDENTIALS、USERNAME_EXISTS | 在登录或注册表单显示错误，修正输入 |
+| ACTIVITY_NOT_FOUND、EXPENSE_NOT_FOUND、INVITE_INVALID | 提示资源不可访问或邀请码无效；非成员与不存在活动使用相同错误码 |
+| ACTIVITY_OWNER_REQUIRED、EXPENSE_EDIT_FORBIDDEN | 提示当前账号无权操作 |
+| ACTIVITY_LOCKED | 刷新活动状态，停止新增或修改账目 |
+| EXPENSE_VERSION_CONFLICT | 保留草稿，重新读取费用，由用户核对后再提交新版本 |
+| REQUEST_ID_CONFLICT | 核对原保存请求；不能自动更换编号再次记账 |
+| EXPENSE_DELETED | 刷新列表或查历史，不自动恢复费用 |
+| VALIDATION_ERROR、INVALID_QUERY、INVALID_EXPENSE、EXPENSE_MEMBER_MISMATCH | 根据 detail 修正参数、日期、金额或成员 |
+| DATABASE_BUSY | 唯一标记 retryable 为 true 的错误；等待 Retry-After 秒后有限次重试原请求 |
+| DATABASE_NOT_READY | 检查数据库连接与迁移，不按暂忙处理 |
+| DATA_CONFLICT | 刷新数据后核对唯一约束冲突，不自动重新提交 |
+| INTERNAL_ERROR | 显示通用错误；费用保存可用原 request_id 和原内容查询式重试，不能新生成编号盲目新增 |
+| NOT_FOUND、METHOD_NOT_ALLOWED、HTTP_ERROR | 检查调用路径、方法或其他 HTTP 错误；原 HTTP 状态与必要响应头保留 |
+
+DATABASE_BUSY 返回 409 和 `Retry-After: 1`，允许的前端来源可跨域读取该响应头。retryable 不是自动重试授权：仍需限制重试次数，并复用费用 request_id 和原内容；其他业务冲突都为 false。500 的响应使用通用信息，不返回异常堆栈或 SQL 参数，且仅向配置允许的前端来源提供跨域读取权限。
+
+公共定义位于 [app/errors.py](../backend/app/errors.py)。其他模块映射领域异常时应复用 ApiError、ErrorCode 和 error_response；新增稳定错误码先加入 ErrorCode。健康检查 /health 继续使用独立的 status、schema_revision 或 expected_schema_revision 格式。
 
 ## 丙的接入位置
 

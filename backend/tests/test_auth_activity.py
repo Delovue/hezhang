@@ -42,7 +42,11 @@ def test_unknown_user_and_wrong_password_share_error(client):
             },
         )
         assert response.status_code == 401
-        assert response.json() == {"detail": "用户名或密码错误"}
+        assert response.json() == {
+            "detail": "用户名或密码错误",
+            "code": "INVALID_CREDENTIALS",
+            "retryable": False,
+        }
 
 
 @pytest.mark.parametrize("auth", [None, "Bearer not-a-jwt", "Basic abc"])
