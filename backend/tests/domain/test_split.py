@@ -3,7 +3,15 @@ import itertools
 import pytest
 
 from app.domain.errors import InvalidInputError
-from app.domain.split import split_equal, split_exact
+from app.domain.split import (
+    ShareResult,
+    SplitMethod,
+    SplitParticipant,
+    compute_split,
+    split_equal,
+    split_exact,
+    split_shares,
+)
 
 
 def test_t01_equal_split_100_yuan_among_three():
@@ -59,3 +67,77 @@ def test_exact_split_allows_zero_share():
 def test_t04_exact_split_rejects_invalid_amounts(amounts):
     with pytest.raises(InvalidInputError):
         split_exact(10000, amounts)
+
+
+def test_t03_shares_split_600_yuan_by_2_2_1_1():
+    assert split_shares(60000, {1: 2, 2: 2, 3: 1, 4: 1}) == {
+        1: 20000,
+        2: 20000,
+        3: 10000,
+        4: 10000,
+    }
+
+
+def test_shares_split_gives_leftover_to_largest_remainder():
+    # 100 分按 1:2 → 精确值 33.33 与 66.67，余数大的成员 2 补 1 分
+    assert split_shares(100, {1: 1, 2: 2}) == {1: 33, 2: 67}
+
+
+def test_shares_split_breaks_remainder_tie_by_member_id():
+    for order in itertools.permutations([(8, 1), (2, 1), (5, 1)]):
+        assert split_shares(1, dict(order)) == {2: 1, 5: 0, 8: 0}
+
+
+@pytest.mark.parametrize("amount", [1, 7, 99, 10001, 123457])
+def test_shares_split_conserves_total(amount):
+    result = split_shares(amount, {1: 3, 2: 5, 3: 7, 4: 1})
+    assert sum(result.values()) == amount
+
+
+@pytest.mark.parametrize("shares", [{1: 0, 2: 1}, {1: -1, 2: 2}, {1: 1.5, 2: 1}, {}])
+def test_t04_shares_split_rejects_invalid_shares(shares):
+    with pytest.raises(InvalidInputError):
+        split_shares(100, shares)
+
+
+def test_compute_split_equal_ignores_values():
+    participants = [SplitParticipant(2), SplitParticipant(1, amount_cents=999)]
+    assert compute_split(301, SplitMethod.EQUAL, participants) == [
+        ShareResult(1, 151),
+        ShareResult(2, 150),
+    ]
+
+
+def test_compute_split_shares_keeps_share_counts():
+    participants = [SplitParticipant(1, shares=2), SplitParticipant(2, shares=1)]
+    assert compute_split(300, SplitMethod.SHARES, participants) == [
+        ShareResult(1, 200, 2),
+        ShareResult(2, 100, 1),
+    ]
+
+
+@pytest.mark.parametrize("method", list(SplitMethod))
+def test_t04_compute_split_rejects_duplicate_members(method):
+    participants = [
+        SplitParticipant(1, amount_cents=50, shares=1),
+        SplitParticipant(1, amount_cents=50, shares=1),
+    ]
+    with pytest.raises(InvalidInputError):
+        compute_split(100, method, participants)
+
+
+@pytest.mark.parametrize(
+    ("method", "participants"),
+    [
+        (SplitMethod.EXACT, [SplitParticipant(1, amount_cents=100), SplitParticipant(2)]),
+        (SplitMethod.SHARES, [SplitParticipant(1, shares=1), SplitParticipant(2)]),
+    ],
+)
+def test_compute_split_requires_values_for_method(method, participants):
+    with pytest.raises(InvalidInputError):
+        compute_split(100, method, participants)
+
+
+def test_t05_member_outside_split_bears_nothing():
+    result = compute_split(6000, SplitMethod.EQUAL, [SplitParticipant(1), SplitParticipant(2)])
+    assert {r.member_id for r in result} == {1, 2}
