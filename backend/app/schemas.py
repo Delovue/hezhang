@@ -239,3 +239,22 @@ class PaymentRead(Schema):
     @classmethod
     def include_timezone(cls, value: datetime) -> datetime:
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+class CategoryTotalRead(Schema):
+    category: str
+    amount_cents: int
+
+
+class MemberShareTotalRead(Schema):
+    member_id: int
+    owed_cents: int
+
+
+class StatisticsRead(Schema):
+    total_spent_cents: int
+    budget_cents: int | None
+    remaining_budget_cents: int | None
+    over_budget: bool
+    by_category: list[CategoryTotalRead]
+    by_member: list[MemberShareTotalRead]

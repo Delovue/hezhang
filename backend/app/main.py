@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
-from app.api import activities, auth, expenses, payments, settlement
+from app.api import activities, auth, expenses, payments, reports, settlement
 from app.config import Settings
 from app.database import build_engine, transaction
 from app.domain.errors import (
@@ -64,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(expenses.router, prefix="/api/v1")
     app.include_router(settlement.router, prefix="/api/v1")
     app.include_router(payments.router, prefix="/api/v1")
+    app.include_router(reports.router, prefix="/api/v1")
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, exc: RequestValidationError):
