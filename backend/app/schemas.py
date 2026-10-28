@@ -196,3 +196,22 @@ class AuditRead(Schema):
     @classmethod
     def include_timezone(cls, value: datetime) -> datetime:
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+class MemberBalanceRead(Schema):
+    member_id: int
+    paid_cents: int
+    owed_cents: int
+    confirmed_out_cents: int
+    confirmed_in_cents: int
+    pending_out_cents: int
+    pending_in_cents: int
+    balance_cents: int
+    available_out_cents: int
+    available_in_cents: int
+
+
+class TransferRead(Schema):
+    payer_member_id: int
+    payee_member_id: int
+    amount_cents: int
