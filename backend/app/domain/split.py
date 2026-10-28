@@ -6,15 +6,10 @@
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from enum import StrEnum
 
 from app.domain.errors import InvalidInputError
-
-
-class SplitMethod(StrEnum):
-    EQUAL = "EQUAL"
-    EXACT = "EXACT"
-    SHARES = "SHARES"
+from app.models import SplitMethod
+from app.schemas import ShareRead, SplitInput
 
 
 @dataclass(frozen=True)
@@ -141,3 +136,15 @@ def compute_split(
         amounts = split_shares(amount_cents, counts)
         return [ShareResult(m, amounts[m], counts[m]) for m in member_ids]
     raise InvalidInputError(f"不支持的分摊方式：{method}")
+
+
+def calculate_split(spec: SplitInput) -> list[ShareRead]:
+    """费用保存使用的入口：SplitInput 已在接口层完成校验，结果转换为响应结构。"""
+    participants = [
+        SplitParticipant(item.member_id, item.amount_cents, item.shares)
+        for item in spec.participants
+    ]
+    return [
+        ShareRead(member_id=r.member_id, amount_cents=r.amount_cents, shares=r.shares)
+        for r in compute_split(spec.amount_cents, spec.split_method, participants)
+    ]
