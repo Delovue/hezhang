@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api import activities, auth, expenses, payments, reports, settlement
 from app.config import Settings
@@ -20,13 +21,14 @@ from app.domain.errors import (
     PermissionDeniedError,
     StateConflictError,
 )
+from app.errors import API_ERROR_RESPONSES, ApiError, ErrorCode, error_response
 
 logger = logging.getLogger(__name__)
 
 DOMAIN_ERROR_STATUS = {
-    InvalidInputError: 422,
-    PermissionDeniedError: 403,
-    StateConflictError: 409,
+    InvalidInputError: (422, ErrorCode.VALIDATION_ERROR),
+    PermissionDeniedError: (403, ErrorCode.HTTP_ERROR),
+    StateConflictError: (409, ErrorCode.DATA_CONFLICT),
 }
 
 
@@ -58,13 +60,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_credentials=False,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["Retry-After"],
     )
-    app.include_router(auth.router, prefix="/api/v1")
-    app.include_router(activities.router, prefix="/api/v1")
-    app.include_router(expenses.router, prefix="/api/v1")
-    app.include_router(settlement.router, prefix="/api/v1")
-    app.include_router(payments.router, prefix="/api/v1")
-    app.include_router(reports.router, prefix="/api/v1")
+    for module in [auth, activities, expenses, settlement, payments, reports]:
+        app.include_router(module.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(_request: Request, exc: StarletteHTTPException):
+        code = (
+            exc.code
+            if isinstance(exc, ApiError)
+            else {
+                404: ErrorCode.NOT_FOUND,
+                405: ErrorCode.METHOD_NOT_ALLOWED,
+            }.get(exc.status_code, ErrorCode.HTTP_ERROR)
+        )
+        detail = exc.detail if isinstance(exc.detail, str) else "请求失败"
+        return error_response(exc.status_code, code, detail, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, exc: RequestValidationError):
@@ -73,27 +85,46 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {"loc": list(error["loc"]), "msg": error["msg"], "type": error["type"]}
             for error in exc.errors()
         ]
-        return JSONResponse(status_code=422, content={"detail": detail})
+        return error_response(422, ErrorCode.VALIDATION_ERROR, detail)
 
     @app.exception_handler(DomainError)
     async def domain_error(_request: Request, exc: DomainError):
-        return JSONResponse(
-            status_code=DOMAIN_ERROR_STATUS[type(exc)], content={"detail": exc.message}
-        )
+        status_code, code = DOMAIN_ERROR_STATUS[type(exc)]
+        return error_response(status_code, code, exc.message)
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(_request: Request, _exc: IntegrityError):
-        return JSONResponse(status_code=409, content={"detail": "数据冲突，请刷新后重试"})
+        return error_response(409, ErrorCode.DATA_CONFLICT, "数据冲突，请刷新后重试")
 
     @app.exception_handler(OperationalError)
     async def operational_error(_request: Request, exc: OperationalError):
         code = getattr(exc.orig, "sqlite_errorcode", 0) & 0xFF
         if code in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
-            return JSONResponse(status_code=409, content={"detail": "账本正在更新，请稍后重试"})
+            return error_response(
+                409,
+                ErrorCode.DATABASE_BUSY,
+                "账本正在更新，请稍后重试",
+                retryable=True,
+                headers={"Retry-After": "1"},
+            )
         logger.error("Database operation failed: %s", type(exc.orig).__name__)
-        return JSONResponse(
-            status_code=503, content={"detail": "数据库未就绪，请检查连接与数据库迁移"}
+        return error_response(
+            503, ErrorCode.DATABASE_NOT_READY, "数据库未就绪，请检查连接与数据库迁移"
         )
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, exc: Exception):
+        logger.error("Unhandled API error: %s", type(exc).__name__)
+        response = error_response(
+            500, ErrorCode.INTERNAL_ERROR, "服务暂时无法完成请求，请稍后查看账本"
+        )
+        # The server-error handler runs outside CORSMiddleware; allow the configured frontend
+        # to read this JSON error, while retaining the same origin policy and no credentials.
+        origin = request.headers.get("origin")
+        if origin and (origin in settings.cors_origins or "*" in settings.cors_origins):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+        return response
 
     @app.get("/health", tags=["运行状态"])
     def health():

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from sqlalchemy import select
 
 from app.api.dependencies import CurrentUser, Database
+from app.errors import ApiError, ErrorCode
 from app.models import User
 from app.schemas import Login, Register, TokenRead, UserRead
 from app.security import DUMMY_HASH, create_access_token, hash_password, verify_password
@@ -14,7 +15,7 @@ def register(data: Register, session: Database):
     # Hash before the first query acquires the write lock.
     hashed = hash_password(data.password)
     if session.scalar(select(User.id).where(User.username == data.username)) is not None:
-        raise HTTPException(409, "用户名已存在")
+        raise ApiError(409, ErrorCode.USERNAME_EXISTS, "用户名已存在")
     user = User(username=data.username, display_name=data.display_name, password_hash=hashed)
     session.add(user)
     session.flush()
@@ -26,7 +27,12 @@ def login(data: Login, request: Request, session: Database):
     user = session.scalar(select(User).where(User.username == data.username))
     valid = verify_password(data.password, user.password_hash if user else DUMMY_HASH)
     if user is None or not valid:
-        raise HTTPException(401, "用户名或密码错误", headers={"WWW-Authenticate": "Bearer"})
+        raise ApiError(
+            401,
+            ErrorCode.INVALID_CREDENTIALS,
+            "用户名或密码错误",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     settings = request.app.state.settings
     return TokenRead(
         access_token=create_access_token(user.id, settings),

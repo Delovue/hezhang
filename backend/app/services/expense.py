@@ -1,12 +1,12 @@
 import hashlib
 import json
 
-from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.split import calculate_split
+from app.errors import ApiError, ErrorCode
 from app.models import Expense, ExpenseRequest, ExpenseShare, Membership, SplitMethod, User
 from app.schemas import ExpenseCreate, ExpenseFields, ExpensePatch, ExpenseRead
 from app.services.activity import require_active, require_activity
@@ -22,18 +22,20 @@ def require_expense(session: Session, activity_id: int, expense_id: int) -> Expe
         )
     )
     if expense is None:
-        raise HTTPException(404, "费用不存在")
+        raise ApiError(404, ErrorCode.EXPENSE_NOT_FOUND, "费用不存在")
     return expense
 
 
 def require_expense_editor(expense: Expense, user_id: int, owner_id: int) -> None:
     if user_id not in {expense.created_by_id, owner_id}:
-        raise HTTPException(403, "只有费用记录者或活动创建者可以修改此费用")
+        raise ApiError(
+            403, ErrorCode.EXPENSE_EDIT_FORBIDDEN, "只有费用记录者或活动创建者可以修改此费用"
+        )
 
 
 def require_version(expense: Expense, expected: int) -> None:
     if expense.version != expected:
-        raise HTTPException(409, "费用已被修改，请刷新后重试")
+        raise ApiError(409, ErrorCode.EXPENSE_VERSION_CONFLICT, "费用已被修改，请刷新后重试")
 
 
 def validate_members(session: Session, activity_id: int, data: ExpenseFields) -> None:
@@ -46,7 +48,7 @@ def validate_members(session: Session, activity_id: int, data: ExpenseFields) ->
         ).all()
     )
     if found != member_ids:
-        raise HTTPException(422, "付款人与所有分摊成员必须属于本活动")
+        raise ApiError(422, ErrorCode.EXPENSE_MEMBER_MISMATCH, "付款人与所有分摊成员必须属于本活动")
 
 
 def expense_snapshot(expense: Expense) -> dict:
@@ -87,10 +89,16 @@ def create_expense(
         )
         if existing is not None:
             if existing.payload_hash != fingerprint:
-                raise HTTPException(409, "request_id 已用于其他费用内容，请勿修改原请求后重试")
+                raise ApiError(
+                    409,
+                    ErrorCode.REQUEST_ID_CONFLICT,
+                    "request_id 已用于其他费用内容，请勿修改原请求后重试",
+                )
             expense = session.get(Expense, existing.expense_id)
             if expense is None or expense.is_deleted:
-                raise HTTPException(409, "原请求对应的费用已被删除，请刷新账本")
+                raise ApiError(
+                    409, ErrorCode.EXPENSE_DELETED, "原请求对应的费用已被删除，请刷新账本"
+                )
             # A successful creation may be retried after editing or sealing. This is read-only.
             return expense, False
     require_active(activity)
@@ -164,7 +172,9 @@ def update_expense(
     try:
         data = ExpenseFields.model_validate(merged)
     except ValidationError as exc:
-        raise HTTPException(422, "; ".join(error["msg"] for error in exc.errors())) from None
+        raise ApiError(
+            422, ErrorCode.INVALID_EXPENSE, "; ".join(error["msg"] for error in exc.errors())
+        ) from None
     validate_members(session, activity_id, data)
     before = expense_snapshot(expense)
     # Delete old shares before inserting their replacements under the unique constraint.

@@ -1,9 +1,9 @@
 import secrets
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.errors import ApiError, ErrorCode
 from app.models import Activity, ActivityStatus, Membership, User
 from app.schemas import ActivityCreate, ActivityPatch, ActivityRead, MemberRead
 from app.services.audit import record_audit
@@ -16,18 +16,18 @@ def require_activity(session: Session, activity_id: int, user_id: int) -> Activi
         .where(Activity.id == activity_id, Membership.user_id == user_id)
     )
     if activity is None:
-        raise HTTPException(404, "活动不存在")
+        raise ApiError(404, ErrorCode.ACTIVITY_NOT_FOUND, "活动不存在")
     return activity
 
 
 def require_active(activity: Activity) -> None:
     if activity.status != ActivityStatus.ACTIVE:
-        raise HTTPException(409, "活动已封账，不能修改成员、费用或预算")
+        raise ApiError(409, ErrorCode.ACTIVITY_LOCKED, "活动已封账，不能修改成员、费用或预算")
 
 
 def require_owner(activity: Activity, user_id: int) -> None:
     if activity.owner_id != user_id:
-        raise HTTPException(403, "只有活动创建者可以执行此操作")
+        raise ApiError(403, ErrorCode.ACTIVITY_OWNER_REQUIRED, "只有活动创建者可以执行此操作")
 
 
 def activity_snapshot(activity: Activity) -> dict:
@@ -73,7 +73,7 @@ def create_activity(session: Session, user: User, data: ActivityCreate) -> Activ
 def join_activity(session: Session, user: User, invite_code: str) -> Activity:
     activity = session.scalar(select(Activity).where(Activity.invite_code == invite_code))
     if activity is None:
-        raise HTTPException(404, "邀请码无效")
+        raise ApiError(404, ErrorCode.INVITE_INVALID, "邀请码无效")
     require_active(activity)
     existing = session.scalar(
         select(Membership).where(
