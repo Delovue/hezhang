@@ -2,7 +2,7 @@
 
 - 验证日期：2026 年 10 月 28 日。
 - 分支：feat/settlement，已合并乙的 feat/backend-foundation（至 5799e02）。
-- 验证提交：421d8b5。业务代码最后变更于 c3e58a4，此后只有测试夹具整理、文档和冒烟脚本。
+- 验证提交：f9e9d9a（PR #2 审查修复）。并发测试的 10 次重复执行在 421d8b5 上完成，该修复未改动付款与封账代码。
 - 本地环境：WSL2 Linux 6.6，Python 3.12.15，FastAPI 0.162.0，SQLAlchemy 2.0.55，Pydantic 2.14.1；依赖固定在 backend/uv.lock。
 - 范围：丙的分摊、余额、结算建议、付款、生命周期、统计与导出。乙的接口见[乙的测试记录](BACKEND_TEST_REPORT.md)。未包含前端。
 
@@ -10,8 +10,8 @@
 
 | 检查 | 结果 |
 | --- | --- |
-| pytest 全部后端测试 | 325 项通过，0 项失败（丙 226 项，乙 99 项） |
-| app 语句覆盖率 | 1329 / 1344，约 99% |
+| pytest 全部后端测试 | 332 项通过，0 项失败（丙 233 项，乙 99 项） |
+| app 语句覆盖率 | 1344 / 1359，约 99% |
 | 丙模块覆盖率 | 领域层、服务层与路由除 2 行外全部覆盖，见下文 |
 | 并发测试重复执行 | tests/test_settlement_concurrency.py 连续 10 次，10 次全部通过 |
 | Ruff 检查与格式检查 | 通过 |
@@ -37,7 +37,7 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 | 测试文件 | 层次 | 数量 |
 | --- | --- | ---: |
 | [domain/test_split.py](../backend/tests/domain/test_split.py) | 单元 | 41 |
-| [domain/test_balance.py](../backend/tests/domain/test_balance.py) | 单元 | 10 |
+| [domain/test_balance.py](../backend/tests/domain/test_balance.py) | 单元 | 12 |
 | [domain/test_settlement.py](../backend/tests/domain/test_settlement.py) | 单元，含 200 组随机账本 | 6 |
 | [domain/test_payment.py](../backend/tests/domain/test_payment.py) | 单元 | 34 |
 | [domain/test_activity.py](../backend/tests/domain/test_activity.py) | 单元 | 17 |
@@ -52,7 +52,8 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 | [test_settlement_concurrency.py](../backend/tests/test_settlement_concurrency.py) | 接口，并发 | 6 |
 | [test_reports_api.py](../backend/tests/test_reports_api.py) | 接口 | 11 |
 | [test_settlement_error_codes.py](../backend/tests/test_settlement_error_codes.py) | 接口，错误码契约 | 12 |
-| 合计 | | 226 |
+| [test_amount_limits.py](../backend/tests/test_amount_limits.py) | 接口，金额上限 | 5 |
+| 合计 | | 233 |
 
 未覆盖的 2 行均为防御分支：split.py 中不支持的分摊方式（输入已由枚举限定），payment.py 中当前用户不是成员（调用前 require_activity 已拦截）。
 
@@ -114,5 +115,21 @@ uv run --locked pytest -q --cov=app --cov-report=term-missing
 当前锁定的 Starlette 在使用 HTTPX 测试兼容层时产生 1 项弃用提示，未导致测试失败。
 
 GitHub Actions 的 backend 工作流在 [PR #2](https://github.com/Delovue/hezhang/pull/2) 上对提交 05f1d37 运行通过（[运行记录](https://github.com/Delovue/hezhang/actions/runs/40687998195)，用时 2 分 41 秒）：Ruff 检查与格式检查通过，迁移升级后无待生成迁移，325 项测试全部通过，app 语句覆盖率 99%，与本地结果一致。后续提交以其各自的运行记录为准。
+
+## 审查发现与修复
+
+乙在审查 PR #2 的 05f1d37 时发现一个 P2 级金额边界问题：A 垫付两笔费用，分别为单笔上限 MAX_CENTS 和 2 分，都由 B 承担，两笔均能保存；系统随后建议 B 一次支付 MAX_CENTS + 2 分，超过付款接口的单笔上限，登记返回 422，且该数值在 JavaScript 中会丢失 1 分精度。
+
+修复提交 f9e9d9a 增加活动级约束：有效费用总额不超过 MAX_CENTS，在费用创建和修改时于写锁内检查，超限返回 422 INVALID_EXPENSE。所有累计金额都不超过费用总额，因此余额、统计和每条转账建议都在单笔上限与 JavaScript 安全整数范围内。设计说明见[设计与算法说明](SETTLEMENT_DESIGN.md)第二节。
+
+| 验证 | 结果 |
+| --- | --- |
+| 按审查步骤复现：第二笔 2 分费用 | 修复前 201 并产生 MAX_CENTS + 2 的建议；修复后 422 INVALID_EXPENSE，只保留第一笔 |
+| 修改费用使总额超限 | 修复前保存成功；修复后 422，版本不变；恰好达到上限可以保存 |
+| 总额恰好为上限 | 建议金额为 MAX_CENTS，按建议登记付款 201，确认后活动结清 |
+| 软删除的费用 | 不计入总额 |
+| 两人垫付合计达到上限 | 余额、建议与统计的所有金额字段绝对值不超过 MAX_CENTS |
+
+修复前后对比的方法：临时恢复 05f1d37 版本的费用服务运行 test_amount_limits.py，复现与修改超限两项失败；恢复修复后 5 项全部通过。
 
 尚未验收：甲的界面、浏览器完整流程（T19 的页面部分、T20）、第二台电脑复现。上述后端测试与冒烟流程不能替代这些验收。

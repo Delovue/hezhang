@@ -38,6 +38,8 @@
 
 所有成员标识都是成员 id（members 接口返回的 id），不是用户 user_id。
 
+同一活动内有效费用总额上限为 MAX_CENTS（9007199254740991 分），由费用创建和修改接口检查，超限返回 422 INVALID_EXPENSE。所有余额、额度、统计和转账建议都不超过这个总额，前端可以按普通 JSON 数字解析，不会丢精度；每条转账建议的金额都可以直接用于登记付款。
+
 错误响应沿用乙定义的统一格式 `{"detail", "code", "retryable"}`，前端按 code 处理，见下文“错误码”。
 
 ## 甲的接入说明
@@ -118,7 +120,7 @@ statistics 返回 total_spent_cents、budget_cents、remaining_budget_cents、ov
 | PAYMENT_NOT_FOUND | 404 | 付款不存在或不属于该活动 | 刷新付款列表 |
 | INVALID_PAYMENT | 422 | 金额非法、给自己付款、收款人不属于本活动 | 在表单显示 detail，修正输入 |
 | EXPENSE_MEMBER_MISMATCH | 422 | 分摊预览的成员不属于本活动 | 刷新成员列表后重选 |
-| INVALID_EXPENSE | 422 | 分摊参数在领域校验中不成立 | 在表单显示 detail |
+| INVALID_EXPENSE | 422 | 分摊参数在领域校验中不成立；保存费用后活动有效费用总额会超过上限 | 在表单显示 detail |
 | ACTIVITY_OWNER_REQUIRED | 403 | 非创建者发起结算或归档 | 隐藏按钮并提示无权限 |
 | PAYMENT_ACTION_FORBIDDEN | 403 | 非收款人确认或拒绝、非付款人撤销 | 提示无权限，刷新付款列表 |
 | PAYMENTS_CLOSED | 409 | 活动不在结算中，不能登记或处理付款 | 刷新活动状态 |
