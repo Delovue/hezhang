@@ -2,6 +2,7 @@ from enum import StrEnum
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ErrorCode(StrEnum):
@@ -28,6 +29,60 @@ class ErrorCode(StrEnum):
     NOT_FOUND = "NOT_FOUND"
     METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED"
     HTTP_ERROR = "HTTP_ERROR"
+
+
+class ValidationIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    loc: list[str | int]
+    msg: str
+    type: str
+
+
+class ErrorResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    detail: str | list[ValidationIssue] = Field(description="中文业务提示或字段校验问题")
+    code: ErrorCode = Field(description="稳定错误码，前端据此选择处理方式")
+    retryable: bool = Field(description="仅数据库暂忙为 true；重试仍须复用原请求并限制次数")
+
+
+API_ERROR_RESPONSES = {
+    401: {"model": ErrorResponse, "description": "需要认证或登录凭证错误"},
+    403: {"model": ErrorResponse, "description": "当前成员无权执行此操作"},
+    404: {"model": ErrorResponse, "description": "资源不存在或不可访问"},
+    409: {
+        "model": ErrorResponse,
+        "description": "业务状态、请求编号、版本或数据库冲突；按 code 处理",
+        "headers": {
+            "Retry-After": {
+                "description": "仅 DATABASE_BUSY 返回，建议等待的秒数",
+                "schema": {"type": "integer", "minimum": 1},
+            }
+        },
+        "content": {
+            "application/json": {
+                "examples": {
+                    "version_conflict": {
+                        "value": {
+                            "detail": "费用已被修改，请刷新后重试",
+                            "code": "EXPENSE_VERSION_CONFLICT",
+                            "retryable": False,
+                        }
+                    },
+                    "database_busy": {
+                        "value": {
+                            "detail": "账本正在更新，请稍后重试",
+                            "code": "DATABASE_BUSY",
+                            "retryable": True,
+                        }
+                    },
+                }
+            }
+        },
+    },
+    422: {"model": ErrorResponse, "description": "字段格式或业务输入校验未通过"},
+    500: {"model": ErrorResponse, "description": "未预期错误，先核对已有账目结果"},
+    503: {"model": ErrorResponse, "description": "数据库未就绪，需要检查连接或迁移"},
+}
 
 
 class ApiError(HTTPException):

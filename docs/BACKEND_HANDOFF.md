@@ -184,6 +184,8 @@ DATABASE_BUSY 返回 409 和 `Retry-After: 1`，允许的前端来源可跨域�
 
 公共定义位于 [app/errors.py](../backend/app/errors.py)。其他模块映射领域异常时应复用 ApiError、ErrorCode 和 error_response；新增稳定错误码先加入 ErrorCode。健康检查 /health 继续使用独立的 status、schema_revision 或 expected_schema_revision 格式。
 
+OpenAPI 为业务接口的 401、403、404、409、422、500、503 显式声明 ErrorResponse，包含 ErrorCode 枚举、字段问题 ValidationIssue 和 409 的 Retry-After 说明。甲生成客户端类型时使用该模型；不能继续把 422 固定当成只有 detail 的旧 HTTPValidationError。新路由注册时传入 API_ERROR_RESPONSES，保证实现与接口文档一致；成功响应与 DELETE 的 204 无响应体约定保持不变。
+
 ## 丙的接入位置
 
 | 位置 | 用法与约束 |

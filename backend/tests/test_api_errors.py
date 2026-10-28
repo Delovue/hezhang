@@ -4,6 +4,7 @@ from starlette.exceptions import HTTPException
 
 from app.api import auth
 from app.database import transaction
+from app.errors import ErrorResponse
 from app.models import Activity, ActivityStatus
 from tests.conftest import PASSWORD, register_actor
 from tests.test_expenses import create
@@ -12,6 +13,7 @@ from tests.test_expenses import create
 def assert_error(response, status, code, *, retryable=False):
     assert response.status_code == status, response.text
     body = response.json()
+    ErrorResponse.model_validate(body)  # Enforce the same contract exposed to client generators.
     assert set(body) == {"detail", "code", "retryable"}
     assert body["code"] == code and body["retryable"] is retryable
     return body

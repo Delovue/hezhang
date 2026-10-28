@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api import activities, auth, expenses
 from app.config import Settings
 from app.database import build_engine, transaction
-from app.errors import ApiError, ErrorCode, error_response
+from app.errors import API_ERROR_RESPONSES, ApiError, ErrorCode, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
         expose_headers=["Retry-After"],
     )
-    app.include_router(auth.router, prefix="/api/v1")
-    app.include_router(activities.router, prefix="/api/v1")
-    app.include_router(expenses.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
+    app.include_router(activities.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
+    app.include_router(expenses.router, prefix="/api/v1", responses=API_ERROR_RESPONSES)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(_request: Request, exc: StarletteHTTPException):
