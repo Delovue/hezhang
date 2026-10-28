@@ -14,6 +14,7 @@
 - [后端测试记录](docs/BACKEND_TEST_REPORT.md)
 - [结算后端交接说明](docs/SETTLEMENT_HANDOFF.md)
 - [结算后端测试记录](docs/SETTLEMENT_TEST_REPORT.md)
+- [结算模块设计与算法说明](docs/SETTLEMENT_DESIGN.md)
 
 ## 开发计划
 
