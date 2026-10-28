@@ -1,0 +1,151 @@
+# 角色乙后端交接说明
+
+本轮交付认证、活动与成员、费用管理、操作历史和数据库迁移，可供甲对接页面、供丙继续实现余额与结算。开发分支为 feat/backend-foundation。
+
+## 当前实现与分工边界
+
+| 范围 | 当前结果 |
+| --- | --- |
+| FR01 | 注册、登录、当前用户；密码使用 Argon2 哈希，JWT Bearer 验证 |
+| FR02 与 FR03 | 创建和查询活动、修改预算、邀请码加入、成员列表、重复加入保护 |
+| FR04 | 费用创建、查询筛选、详情、部分修改、版本冲突与软删除 |
+| FR05 的共享依赖 | 三种分摊纯函数已用于费用保存，供丙复用到预览接口 |
+| FR10 | 活动、成员、费用变更历史；记录修改前后数据 |
+| FR09 的乙侧约束 | 所有非 ACTIVE 状态拒绝费用、成员和活动写入；并发时在写锁内重新检查 |
+| 后续由丙实现 | 分摊预览端点、余额、结算建议、付款确认、状态转换端点、统计和导出 |
+| 后续由甲与丁完成 | 前端页面、完整端到端流程、报告整合与现场演示 |
+
+当前没有创建付款表或提供封账端点。测试中的状态变更由测试代码模拟，不能视为结算功能已经实现。
+
+## 运行与联调入口
+
+按 [README](../README.md) 初始化环境、执行迁移并启动后端。
+
+- 健康检查：GET /health。
+- 接口文档：/docs；机器可读契约：/openapi.json。
+- API 前缀：/api/v1。
+- 默认允许的前端来源：http://localhost:5173 和 http://127.0.0.1:5173。
+- 开发数据库：backend/data/hezhang.db；数据库和 .env 均不提交 Git。
+- 列表默认每页 50 条，通过 limit 和 offset 分页，limit 最大 100。
+
+## 甲的接入顺序
+
+### 账号与登录状态
+
+POST /api/v1/auth/register 接收 JSON：
+
+~~~json
+{"username":"alice","display_name":"小王","password":"your-password-at-least-8-chars"}
+~~~
+
+用户名使用 3–32 位英文字母、数字或下划线，统一转为小写；显示名支持中文。密码为 8–128 个字符，保留原始空格，不按显示名规则裁剪。
+
+POST /api/v1/auth/login 接收 username 和 password，返回 access_token、token_type 和 expires_in。后续请求发送 Authorization: Bearer 加该令牌。GET /api/v1/auth/me 返回当前用户。
+
+前端只在内存中保存令牌，退出时清空；当前没有服务端注销或令牌撤销端点。刷新后重新登录，过期响应 401 后也回到登录页。Swagger 的 Authorize 输入框填写登录返回的令牌本体即可。
+
+### 活动与成员
+
+| 方法与路径 | 行为 |
+| --- | --- |
+| POST /api/v1/activities | 创建活动，请求 name 和可选 budget_cents |
+| GET /api/v1/activities | 仅列出本人参加的活动 |
+| GET /api/v1/activities/{id} | 查询详情 |
+| PATCH /api/v1/activities/{id} | 创建者在 ACTIVE 状态修改名称或预算 |
+| POST /api/v1/activities/join | 用 invite_code 加入 |
+| GET /api/v1/activities/{id}/members | 查询成员 id、user_id、display_name、role |
+
+预算为 null 表示未设置，0 是有效预算。仅活动创建者在 ACTIVE 状态能看到邀请码，其他成员收到 null。不可从操作历史获取邀请码。
+
+**成员 id 与用户 user_id 是不同标识。** 付款人和分摊参与人使用成员 id，不能直接拿登录返回的用户 id 充当成员 id。
+
+### 费用录入
+
+先调用成员列表，使用真实成员 id 组装以下请求；示例中的 1、2、3 仅为占位。
+
+POST /api/v1/activities/{id}/expenses：
+
+~~~json
+{
+  "title": "晚餐",
+  "category": "餐饮",
+  "amount_cents": 10000,
+  "expense_date": "2026-10-27",
+  "notes": "三人均摊",
+  "payer_member_id": 1,
+  "split_method": "EQUAL",
+  "participants": [{"member_id":1},{"member_id":2},{"member_id":3}]
+}
+~~~
+
+EXACT 的参与人填写 member_id、amount_cents；SHARES 填写 member_id、shares。不要在 EQUAL 中提交金额或份数，也不要同时混用 amount_cents 与 shares。一次最多选择 100 个分摊成员，份数是 1–1000000 的整数。
+
+金额必须以 JSON 整数分传输，不能传浮点数、字符串或布尔值；费用总额必须大于零。金额上限为 JavaScript 安全整数 9007199254740991 分。后端计算并返回 shares，其中包含每位成员实际承担的整数分。
+
+### 查询与修改
+
+| 方法与路径 | 行为 |
+| --- | --- |
+| GET /activities/{id}/expenses | 按 category、payer_member_id、start_date、end_date 筛选；日期区间包含端点 |
+| GET /activities/{id}/expenses/{expense_id} | 查询单笔有效费用 |
+| PATCH /activities/{id}/expenses/{expense_id} | 携带当前 version 和需要变更的字段 |
+| DELETE /activities/{id}/expenses/{expense_id}?version=2 | 软删除；成功返回 204 |
+| GET /activities/{id}/audit-logs | 按操作 id 倒序查询历史 |
+
+上表路径均需加 /api/v1 前缀。PATCH 示例：
+
+~~~json
+{"version":1,"amount_cents":12000}
+~~~
+
+均摊和按份数分摊会依据原参与人重新计算；指定金额方式改变总额时，需要同时给出与新总额一致的 participants。修改 split_method 时必须同时提交 participants。notes 可用 null 清空，其他费用字段不能设为 null。
+
+保存成功后使用响应中的新 version。过期 version 返回 409，界面应提示刷新并保留尚未提交的输入，不能自动覆盖新版本。付款人并不自动拥有修改权；修改和删除只允许费用记录者或活动创建者执行。
+
+## 错误处理约定
+
+| HTTP 状态 | 前端处理 |
+| --- | --- |
+| 401 | 登录失效或凭证错误，提示重新登录 |
+| 403 | 用户已属于活动，但没有此项操作权限 |
+| 404 | 资源不存在，或不属于用户可访问的活动 |
+| 409 | 版本冲突、活动已封账、唯一约束冲突或数据库暂时忙 |
+| 422 | 字段格式或业务输入校验失败 |
+| 503 | 数据库未准备好，检查迁移和运行环境 |
+
+detail 可能是字符串，也可能是字段错误数组。数组项包含 loc、msg、type，不回显输入的密码。无论页面是否禁用按钮，都以接口返回为准。
+
+## 丙的接入位置
+
+| 位置 | 用法与约束 |
+| --- | --- |
+| [分摊函数](../backend/app/domain/split.py) | calculate_split 接收已验证的 SplitInput，返回按成员 id 排序的 ShareRead 列表 |
+| [输入输出结构](../backend/app/schemas.py) | 复用 SplitInput、Participant、ShareRead；预览也必须检查活动成员权限 |
+| [数据模型](../backend/app/models.py) | 复用 ActivityStatus、Expense、ExpenseShare、Membership 与 AuditLog |
+| [事务入口](../backend/app/database.py) | transaction(engine, write=True) 在第一次读取前使用 BEGIN IMMEDIATE |
+| [接口依赖](../backend/app/api/dependencies.py) | 复用 Database 与 CurrentUser；写请求在发送成功响应之前提交事务 |
+| [活动权限](../backend/app/services/activity.py) | require_activity 检查活动隔离；require_owner 检查创建者 |
+| [历史记录](../backend/app/services/audit.py) | record_audit 与业务变更共用同一个 Session 和事务 |
+
+费用被软删除后，旧分摊仍保留用于追溯。计算余额时必须连接 Expense，并过滤 is_deleted 为 false，不能直接累计全部 ExpenseShare。
+
+付款登记、封账和确认必须使用同一个写事务规则，先拿写锁，再读取状态、余额和待确认占用，再校验并写入。不要仅使用 SQLite 默认的延迟事务替代它；不要在路由外检查状态后再另起事务写入。
+
+付款功能请新增 Alembic 迁移，例如 0002；不要重写已经交付的 0001，也不要在应用启动时自动 create_all。
+
+## 乙的答辩准备
+
+可以沿这条链说明一次费用更新：
+
+1. 路由解析金额、成员和 version。
+2. JWT 身份校验，查询成员关系，确认费用归属。
+3. 在写事务内检查 ACTIVE 状态、编辑权限和最新 version。
+4. 通过共享分摊函数重新计算；替换分摊并增加 version。
+5. 保存修改前后历史；整个事务成功后返回响应。
+6. 发生异常时回滚；并发旧版本更新返回 409。
+
+[测试记录](BACKEND_TEST_REPORT.md)给出已验证的边界。完整课程演示仍需甲、丙、丁的后续功能和集成。
+
+## 提交规则
+
+每新增一项功能逻辑，完成必要测试后立即建立一次有明确含义的 commit，并推送当前功能分支，不积压到全部功能结束。修复和测试说明可单独提交；不造空提交或修改历史日期。PR 经同伴检查后再合并，保留真实开发记录。

@@ -4,7 +4,12 @@
 
 项目以朋友旅行为主要场景，完成“创建活动 → 邀请成员 → 共同记账 → 费用分摊 → 付款确认 → 结清归档”的流程，并通过业务规则、测试和真实 Git 提交记录展示开发过程。
 
-**当前阶段：项目规划。业务代码尚未开发，计划中的测试尚未执行。**
+**当前阶段：角色乙的基础后端已实现，开发分支为 feat/backend-foundation。前端及完整付款结算流程待继续开发。**
+
+本轮已实现注册登录、活动与成员、费用增删改查、三种分摊计算、权限和操作历史，并提供数据库迁移。46 项后端测试通过，app 语句覆盖率约 96%。
+
+- [后端交接说明](docs/BACKEND_HANDOFF.md)
+- [后端测试记录](docs/BACKEND_TEST_REPORT.md)
 
 ## 开发计划
 
@@ -15,7 +20,33 @@
 - 技术路线：Vue 3、TypeScript、FastAPI、SQLAlchemy、SQLite。
 - 交付形式：可本地运行的 Web 应用、源代码、实验报告、测试记录和 3–5 分钟现场演示。
 
-## 首版功能
+## 后端运行
+
+需要 Git、Python 和 uv。若未安装 uv，可执行 `python -m pip install uv==0.13.6`。进入仓库目录，在 PowerShell 或其他终端执行：
+
+~~~text
+cd backend
+uv python install 3.12
+uv sync --locked --managed-python
+uv run --locked python -c "from pathlib import Path; import secrets; p=Path('.env'); p.exists() or p.write_text('HEZHANG_JWT_SECRET='+secrets.token_urlsafe(48)+'\n', encoding='utf-8')"
+uv run --locked alembic upgrade head
+uv run --locked uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000
+~~~
+
+初始化命令只在 .env 不存在时生成密钥。已有 .env 会保留；若从示例复制了空密钥，需要为 HEZHANG_JWT_SECRET 填入至少 32 字符的随机值。
+
+打开 [接口文档](http://127.0.0.1:8000/docs)，先注册并登录，再把返回的 access_token 填入 Authorize。默认没有预置账号。接口金额单位为分，数据库保存在 backend/data/hezhang.db。
+
+验证代码：
+
+~~~text
+uv run --locked pytest -q --cov=app --cov-report=term-missing
+uv run --locked ruff check app tests migrations
+uv run --locked ruff format --check app tests migrations
+uv run --locked alembic check
+~~~
+
+## 完整首版规划
 
 | 模块 | 主要功能 |
 | --- | --- |
@@ -44,6 +75,9 @@ C 登记支付 20 元时，余额保持不变；A 确认收到后，A 应收 30 
 ## 仓库内容
 
 - [开发计划](docs/DEVELOPMENT_PLAN.md)：需求、架构、接口、分工、排期、测试和答辩安排。
+- [基础后端](backend/)：FastAPI 路由、业务服务、共享分摊、模型、迁移和测试。
+- [后端交接说明](docs/BACKEND_HANDOFF.md)：字段、权限、版本、事务约定及与甲、丙的接口。
+- [后端测试记录](docs/BACKEND_TEST_REPORT.md)：实际验证结果及尚待集成的范围。
 - `.gitignore`：忽略环境变量、依赖、数据库和构建产物。
 
-前后端目录、安装命令、演示账号和测试运行方式将在 D1 建立可运行骨架后补充。项目进展通过实际代码、测试结果及 GitHub 提交记录更新。
+每完成一项新增功能逻辑并验证通过，立即 commit 并推送功能分支。项目进展通过实际代码、测试结果及 GitHub 提交记录更新。
