@@ -106,9 +106,16 @@ test('a rejected stale deletion refreshes the record and keeps its conflict expl
   await dialog.getByRole('button', { name: '保存费用' }).click()
   await expect(page.locator('.expense-card')).toHaveCount(1)
   const rows = await (await request.get(`${api}/activities/${id}/expenses`, { headers: auth })).json()
-  expect((await request.patch(`${api}/activities/${id}/expenses/${rows[0].id}`, { headers: auth,
-    data: { version: rows[0].version, title: '他人更新后的费用' },
-  })).status()).toBe(200)
+  // Create the competing edit after the UI has captured its DELETE version. A pending
+  // list refresh from creation must not accidentally make this a fresh-version delete.
+  await page.route(`**/activities/${id}/expenses/${rows[0].id}?*`, async route => {
+    if (route.request().method() !== 'DELETE') return route.continue()
+    const version = Number(new URL(route.request().url()).searchParams.get('version'))
+    expect((await request.patch(`${api}/activities/${id}/expenses/${rows[0].id}`, { headers: auth,
+      data: { version, title: '他人更新后的费用' },
+    })).status()).toBe(200)
+    await route.continue()
+  })
   await page.getByRole('button', { name: '删除费用', exact: true }).click()
   await page.getByRole('button', { name: '确认删除', exact: true }).click()
   await expect(page.locator('.expense-card')).toContainText('他人更新后的费用')
