@@ -1,10 +1,22 @@
 import { request } from './client'
 import type { Activity, ActivityInput, ActivityStatus, Credentials, Member, Registration, Statistics, Token, User } from './types'
+import type { Expense, ExpenseCreate, ExpenseInput, Share, SplitInput } from './types'
 
 export const authApi = {
   register: (body: Registration) => request<User>('/auth/register', { method: 'POST', body, public: true }),
   login: (body: Credentials) => request<Token>('/auth/login', { method: 'POST', body, public: true }),
   me: (token: string) => request<User>('/auth/me', { public: true, token }),
+}
+export const expenseApi = {
+  list: (id: number, query: Record<string, string | number | undefined>, signal?: AbortSignal) =>
+    request<Expense[]>(`/activities/${id}/expenses`, { query, signal }),
+  detail: (id: number, expense: number) => request<Expense>(`/activities/${id}/expenses/${expense}`),
+  create: (id: number, body: ExpenseCreate) => request<Expense>(`/activities/${id}/expenses`, { method: 'POST', body }),
+  update: (id: number, expense: number, body: ExpenseInput & { version: number }) =>
+    request<Expense>(`/activities/${id}/expenses/${expense}`, { method: 'PATCH', body }),
+  remove: (id: number, expense: number, version: number) =>
+    request<void>(`/activities/${id}/expenses/${expense}`, { method: 'DELETE', query: { version } }),
+  preview: (id: number, body: SplitInput) => request<Share[]>(`/activities/${id}/split-preview`, { method: 'POST', body }),
 }
 export const activityApi = {
   list: (query: { q?: string; status?: ActivityStatus; before_id?: number; limit?: number }, signal?: AbortSignal) =>
