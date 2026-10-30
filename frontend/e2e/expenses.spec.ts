@@ -78,3 +78,23 @@ test('a lost creation response is safely retried and stale edits preserve the dr
   await dialog.getByRole('button', { name: '保存费用' }).click()
   await expect(page.locator('.expense-card')).toContainText('我的保留草稿')
 })
+
+test('loading more expenses keeps the applied filters until the user submits a new search', async ({ page, request }) => {
+  const account = await register(page, '小王'); const id = await createActivity(page, '费用分页')
+  const auth = await headers(request, account)
+  const members = await (await request.get(`${api}/activities/${id}/members`, { headers: auth })).json()
+  for (let i = 0; i < 21; i++) {
+    const response = await request.post(`${api}/activities/${id}/expenses`, { headers: auth, data: {
+      title: `费用 ${i}`, amount_cents: 1, category: '其他', expense_date: '2026-10-30', payer_member_id: members[0].id,
+      split_method: 'EQUAL', participants: [{ member_id: members[0].id }],
+    } })
+    expect(response.status()).toBe(201)
+  }
+  await page.getByRole('button', { name: '费用明细', exact: true }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(20)
+  await page.getByLabel('费用关键词').fill('没有这笔费用')
+  await page.getByRole('button', { name: '加载更多费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(21)
+  await page.getByRole('button', { name: '筛选费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(0)
+})

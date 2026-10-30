@@ -13,10 +13,12 @@ const emit = defineEmits<{ changed: [] }>()
 const rows = ref<Expense[]>([]), busy = ref(false), error = ref(''), more = ref(false), editing = ref<Expense>(), dialog = ref(false), deleting = ref(0)
 const filters = reactive({ q: '', category: '', payer_member_id: '', participant_member_id: '', start_date: '', end_date: '' })
 let controller: AbortController | null = null
+let applied = { ...filters }
 async function load(append = false) {
+  if (!append) applied = { ...filters }
   controller?.abort(); const current = new AbortController(); controller = current; busy.value = true; error.value = ''
   try {
-    const next = await expenseApi.list(props.activity.id, { ...filters, limit: 20, offset: append ? rows.value.length : 0 }, current.signal)
+    const next = await expenseApi.list(props.activity.id, { ...applied, limit: 20, offset: append ? rows.value.length : 0 }, current.signal)
     if (current.signal.aborted) return
     rows.value = append ? [...rows.value, ...next] : next; more.value = next.length === 20
   } catch (cause) { if (!isCancelled(cause)) error.value = errorMessage(cause) }

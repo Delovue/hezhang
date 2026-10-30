@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 import { api, createActivity, expenseForm, headers, join, register } from './helpers'
 
 async function settlement(page: Page) {
@@ -46,6 +47,7 @@ test('three real browser accounts complete expenses, partial payments, rejection
     await expect(page.locator('.balance-card').filter({ hasText: '小王' })).toContainText('应收 ¥ 50.00')
     await expect(page.locator('.balance-card').filter({ hasText: '小李' })).toContainText('应付 ¥ 10.00')
     await expect(page.locator('.balance-card').filter({ hasText: '小陈' })).toContainText('应付 ¥ 40.00')
+    await expect(page.locator('.el-message')).toHaveCount(0)
     await page.screenshot({ path: 'test-results/settlement-desktop.png', fullPage: true })
     await seal(page)
     await page.getByRole('button', { name: '费用明细', exact: true }).click()
@@ -78,15 +80,39 @@ test('three real browser accounts complete expenses, partial payments, rejection
     await page.getByRole('button', { name: '归档活动', exact: true }).click()
     await page.getByRole('button', { name: '确认继续' }).click()
     await expect(page.locator('.detail-title')).toContainText('已归档')
+    await expect(page.getByRole('dialog', { name: '归档活动', exact: true })).not.toBeVisible()
+    await expect(page.locator('.el-message')).toHaveCount(0)
     await expect(page.getByRole('button', { name: '登记已付款', exact: true })).toHaveCount(0)
     await page.setViewportSize({ width: 390, height: 844 })
     await page.screenshot({ path: 'test-results/settlement-mobile.png', fullPage: true })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy()
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.getByRole('button', { name: '操作历史', exact: true }).click()
+    await expect(page.locator('.audit-entry').filter({ hasText: '归档活动' })).toHaveCount(1)
+    await expect(page.locator('.audit-entry').filter({ hasText: '确认收款' })).toHaveCount(3)
+    await page.locator('.audit-entry').filter({ hasText: '自动结清' }).getByText('查看变更详情').click()
+    await page.screenshot({ path: 'test-results/history-desktop.png', fullPage: true })
+    const downloading = page.waitForEvent('download')
+    await page.getByRole('button', { name: '导出费用 CSV' }).click()
+    const csv = await readFile((await (await downloading).path())!, 'utf8')
+    expect(csv.trim().split('\n')).toHaveLength(3)
+    expect(csv).toContain('120.00'); expect(csv).toContain('60.00')
     await page.getByRole('button', { name: '活动概览' }).click()
     await expect(page.getByTestId('total-spent')).toHaveText('¥ 180.00')
     const authA = await headers(request, accountA)
     expect((await (await request.get(`${api}/activities/${id}`, { headers: authA })).json()).status).toBe('ARCHIVED')
   } finally { await contextB.close(); await contextC.close() }
+})
+
+test('an empty activity settles immediately and can be archived', async ({ page }) => {
+  await register(page, '小王'); await createActivity(page, '空活动')
+  await settlement(page)
+  await page.getByRole('button', { name: '封账并开始结算' }).click()
+  await page.getByRole('button', { name: '确认继续' }).click()
+  await expect(page.locator('.detail-title')).toContainText('已结清')
+  await page.getByRole('button', { name: '归档活动', exact: true }).click()
+  await page.getByRole('button', { name: '确认继续' }).click()
+  await expect(page.locator('.detail-title')).toContainText('已归档')
 })
 
 test('retry after a committed payment response is lost creates exactly one payment', async ({ page, browser, request }) => {
