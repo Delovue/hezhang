@@ -1,0 +1,14 @@
+import { expect, it } from 'vitest'
+import type { Member } from '../src/api/types'
+import { labelMembers } from '../src/utils/members'
+it('distinguishes repeated names in every expense and payment choice without changing IDs', () => {
+  const rows: Member[] = [
+    { id: 3, user_id: 10, display_name: '小王', role: 'OWNER' },
+    { id: 6, user_id: 12, display_name: '小王', role: 'MEMBER' },
+    { id: 8, user_id: 15, display_name: '小李', role: 'MEMBER' },
+  ]
+  const labeled = labelMembers(rows)
+  expect(labeled.map(row => row.display_name)).toEqual(['小王（#3）', '小王（#6）', '小李'])
+  expect(labeled.map(row => row.id)).toEqual([3,6,8])
+  expect(rows[0]!.display_name).toBe('小王')
+})

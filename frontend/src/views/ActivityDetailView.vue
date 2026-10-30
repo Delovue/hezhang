@@ -15,6 +15,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 import { useSessionStore } from '../stores/session'
 import { parseActivityId, statusDescriptions } from '../utils/activity'
 import { formatCents } from '../utils/money'
+import { labelMembers } from '../utils/members'
 
 const route = useRoute()
 const session = useSessionStore()
@@ -60,7 +61,7 @@ async function load() {
     missing.value = detail.reason instanceof ApiError && detail.reason.status === 404
     if (missing.value) activity.value = null
   }
-  if (memberRows.status === 'fulfilled') members.value = memberRows.value
+  if (memberRows.status === 'fulfilled') members.value = labelMembers(memberRows.value)
   else if (!isCancelled(memberRows.reason) && !error.value) error.value = errorMessage(memberRows.reason)
   if (report.status === 'fulfilled') statistics.value = report.value
   else if (!isCancelled(report.reason)) { statistics.value = null; statisticsError.value = errorMessage(report.reason) }
