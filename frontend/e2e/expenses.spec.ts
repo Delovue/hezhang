@@ -98,3 +98,19 @@ test('loading more expenses keeps the applied filters until the user submits a n
   await page.getByRole('button', { name: '筛选费用' }).click()
   await expect(page.locator('.expense-card')).toHaveCount(0)
 })
+
+test('a rejected stale deletion refreshes the record and keeps its conflict explanation visible', async ({ page, request }) => {
+  const account = await register(page, '小王'); const id = await createActivity(page, '删除冲突')
+  const auth = await headers(request, account)
+  const dialog = await expenseForm(page, '原费用', '10')
+  await dialog.getByRole('button', { name: '保存费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(1)
+  const rows = await (await request.get(`${api}/activities/${id}/expenses`, { headers: auth })).json()
+  expect((await request.patch(`${api}/activities/${id}/expenses/${rows[0].id}`, { headers: auth,
+    data: { version: rows[0].version, title: '他人更新后的费用' },
+  })).status()).toBe(200)
+  await page.getByRole('button', { name: '删除费用', exact: true }).click()
+  await page.getByRole('button', { name: '确认删除', exact: true }).click()
+  await expect(page.locator('.expense-card')).toContainText('他人更新后的费用')
+  await expect(page.locator('.ledger-panel').getByRole('alert')).toContainText('费用已被修改')
+})

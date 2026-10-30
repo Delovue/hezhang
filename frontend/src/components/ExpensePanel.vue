@@ -2,7 +2,7 @@
 import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { expenseApi } from '../api'
-import { errorMessage, isCancelled } from '../api/client'
+import { ApiError, errorMessage, isCancelled } from '../api/client'
 import type { Activity, Expense, Member } from '../api/types'
 import { formatCents } from '../utils/money'
 import { splitLabels } from '../utils/expense'
@@ -11,6 +11,7 @@ import ExpenseEditor from './ExpenseEditor.vue'
 const props = defineProps<{ activity: Activity; members: Member[]; userId: number; refreshToken: number }>()
 const emit = defineEmits<{ changed: [] }>()
 const rows = ref<Expense[]>([]), busy = ref(false), error = ref(''), more = ref(false), editing = ref<Expense>(), dialog = ref(false), deleting = ref(0)
+const actionError = ref('')
 const filters = reactive({ q: '', category: '', payer_member_id: '', participant_member_id: '', start_date: '', end_date: '' })
 let controller: AbortController | null = null
 let applied = { ...filters }
@@ -29,9 +30,12 @@ function edit(row?: Expense) { editing.value = row; dialog.value = true }
 async function remove(row: Expense) {
   try { await ElMessageBox.confirm(`删除“${row.title}”（¥ ${formatCents(row.amount_cents)}）？操作历史会保留。`, '删除费用', { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' }) }
   catch { return }
-  deleting.value = row.id; error.value = ''
+  deleting.value = row.id; actionError.value = ''
   try { await expenseApi.remove(props.activity.id, row.id, row.version); ElMessage.success('费用已删除'); emit('changed') }
-  catch (cause) { if (!isCancelled(cause)) error.value = errorMessage(cause) }
+  catch (cause) {
+    if (!isCancelled(cause)) actionError.value = errorMessage(cause)
+    if (cause instanceof ApiError && cause.status === 409) emit('changed')
+  }
   finally { deleting.value = 0; void load() }
 }
 function saved() { ElMessage.success('费用已保存'); emit('changed') }
@@ -51,7 +55,7 @@ onBeforeUnmount(() => controller?.abort())
       <label>开始日期<input v-model="filters.start_date" type="date" /></label><label>结束日期<input v-model="filters.end_date" type="date" /></label>
       <el-button native-type="submit" :loading="busy">筛选费用</el-button>
     </form>
-    <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
+    <el-alert v-if="error || actionError" :title="actionError || error" type="error" :closable="false" role="alert" />
     <div v-if="!rows.length && !busy && !error" class="inner-empty"><h3>暂无符合条件的费用</h3><p>新增共同支出，或调整筛选条件。</p></div>
     <article v-for="row in rows" :key="row.id" class="expense-card" :data-testid="`expense-${row.id}`">
       <div class="entry-heading"><div><h3>{{ row.title }}</h3><p class="muted">{{ row.expense_date }} · {{ row.category }} · {{ members.find(m => m.id === row.payer_member_id)?.display_name }} 垫付</p></div><strong class="money">¥ {{ formatCents(row.amount_cents) }}</strong></div>
