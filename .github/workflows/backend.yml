@@ -2,10 +2,10 @@ name: Backend checks
 on:
   pull_request:
     branches: [main]
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "scripts/**", ".github/workflows/backend.yml"]
   push:
     branches: [main]
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "scripts/**", ".github/workflows/backend.yml"]
 permissions:
   contents: read
 jobs:
@@ -32,9 +32,13 @@ jobs:
         run: |
           uv run --locked ruff check app tests migrations
           uv run --locked ruff format --check app tests migrations
+          uv run --locked ruff check --config pyproject.toml ../scripts/course.py
+          uv run --locked ruff format --check --config pyproject.toml ../scripts/course.py
       - name: Check database migrations
         run: |
           uv run --locked alembic upgrade head
           uv run --locked alembic check
       - name: Run backend tests
-        run: uv run --locked pytest -q --cov=app --cov-report=term-missing
+        run: uv run --locked pytest -q --cov=app --cov-report=term-missing --junitxml=../.e2e/backend-tests.xml
+      - name: Verify real HTTP workflow and persistence after restart
+        run: uv run --locked python ../scripts/course.py verify --directory ../.e2e/ci-course
