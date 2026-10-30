@@ -2,6 +2,7 @@ import { request } from './client'
 import type { Activity, ActivityInput, ActivityStatus, Credentials, Member, Registration, Statistics, Token, User } from './types'
 import type { Expense, ExpenseCreate, ExpenseInput, Share, SplitInput } from './types'
 import type { Balance, Payment, PaymentAction, PaymentCreate, PaymentStatus, Transfer } from './types'
+import type { AuditEntry } from './types'
 
 export const settlementApi = {
   balances: (id: number, signal?: AbortSignal) => request<Balance[]>(`/activities/${id}/balances`, { signal }),
@@ -41,4 +42,6 @@ export const activityApi = {
   members: (id: number, signal?: AbortSignal) => request<Member[]>(`/activities/${id}/members`, { signal }),
   statistics: (id: number, signal?: AbortSignal) => request<Statistics>(`/activities/${id}/statistics`, { signal }),
   exportCsv: (id: number) => request<Blob>(`/activities/${id}/export.csv`, { responseType: 'blob' }),
+  history: (id: number, query: Record<string, string | number | undefined>, signal?: AbortSignal) =>
+    request<AuditEntry[]>(`/activities/${id}/audit-logs`, { query, signal }),
 }

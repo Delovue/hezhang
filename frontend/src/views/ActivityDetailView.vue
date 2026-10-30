@@ -10,6 +10,7 @@ import ActivityFormDialog from '../components/ActivityFormDialog.vue'
 import ExpensePanel from '../components/ExpensePanel.vue'
 import SettlementPanel from '../components/SettlementPanel.vue'
 import ExportButton from '../components/ExportButton.vue'
+import AuditPanel from '../components/AuditPanel.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { useSessionStore } from '../stores/session'
 import { parseActivityId, statusDescriptions } from '../utils/activity'
@@ -94,6 +95,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
         <button :class="{ selected: tab === 'members' }" :aria-pressed="tab === 'members'" @click="tab = 'members'">活动成员 <span>{{ members.length }}</span></button>
         <button :class="{ selected: tab === 'expenses' }" :aria-pressed="tab === 'expenses'" @click="tab = 'expenses'">费用明细</button>
         <button :class="{ selected: tab === 'settlement' }" :aria-pressed="tab === 'settlement'" @click="tab = 'settlement'">结算与付款</button>
+        <button :class="{ selected: tab === 'history' }" :aria-pressed="tab === 'history'" @click="tab = 'history'">操作历史</button>
       </div>
       <div v-if="tab === 'overview'" class="overview-content">
         <el-alert v-if="statisticsError" :title="`统计暂不可用：${statisticsError}`" type="warning" :closable="false" show-icon role="alert" />
@@ -108,6 +110,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
       <article v-else-if="tab === 'members'" class="panel"><div class="panel-heading"><div><h2>一起记账的伙伴</h2><p class="muted">共 {{ members.length }} 位成员 · 我的身份：{{ currentMember?.role === 'OWNER' ? '创建者' : '成员' }}</p></div></div><div class="member-grid"><div v-for="member in members" :key="member.id" class="member-card"><span class="avatar">{{ member.display_name.slice(0, 1) }}</span><div><strong>{{ member.display_name }} <small v-if="member.user_id === session.user?.id">（我）</small></strong><span class="member-role">{{ member.role === 'OWNER' ? '活动创建者' : '活动成员' }}</span></div></div></div><p v-if="activity.status !== 'ACTIVE'" class="field-help">活动已封账，成员名单已冻结。</p></article>
       <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
       <SettlementPanel v-else-if="tab === 'settlement'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
+      <AuditPanel v-else-if="tab === 'history'" :activity-id="activity.id" :members="members" :refresh-token="refreshToken" />
     </template>
     <div v-else-if="!loading && error" class="empty-state"><p>暂时无法加载活动。</p><el-button @click="load">重新加载</el-button></div>
   </section>

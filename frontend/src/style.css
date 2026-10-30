@@ -250,6 +250,16 @@ a.activity-card:hover { border-color: #a9bea1; box-shadow: 0 5px 18px #2a4b3610;
 .payment-filter select { padding: 7px; border: 1px solid #d5ddcf; border-radius: 5px; background: #fff; color: #314b3e; }
 .payment-amount { margin-top: 18px; }
 .pending-label { color: #a46a36; }
+.audit-entry { padding: 6px 0 22px 20px; border-left: 2px solid #dce6d3; }
+.audit-heading { display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.audit-heading strong { font-size: 14px; }
+.audit-heading time, .audit-entry > .muted { font-size: 12px; color: #7b8b71; }
+.audit-entry summary { font-size: 13px; cursor: pointer; color: #3b7056; padding-bottom: 12px; }
+.audit-table-wrap { overflow-x: auto; }
+.audit-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+.audit-table th, .audit-table td { padding: 12px; border: 1px solid #e3e8dc; vertical-align: top; text-align: left; overflow-wrap: anywhere; white-space: pre-wrap; }
+.audit-table th { background: #f3f6ee; font-weight: 500; }
+.audit-table th:first-child { width: 18%; }
 .form-grid, .filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
 .form-field, .filter-grid label { display: grid; gap: 8px; font-size: 13px; }

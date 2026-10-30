@@ -48,3 +48,7 @@ export interface Payment extends Transfer {
   id: number; activity_id: number; status: PaymentStatus; created_at: string; updated_at: string
 }
 export interface PaymentCreate { payee_member_id: number; amount_cents: number; request_id: string }
+export interface AuditEntry {
+  id: number; actor_user_id: number; action: string; object_type: string; object_id: number
+  before: Record<string, unknown> | null; after: Record<string, unknown> | null; created_at: string
+}
