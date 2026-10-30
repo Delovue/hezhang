@@ -36,3 +36,15 @@ export interface Expense extends Omit<ExpenseInput, 'participants'> {
   id: number; activity_id: number; created_by_id: number; version: number; shares: Share[]
 }
 export interface ExpenseCreate extends ExpenseInput { request_id: string }
+export interface Balance {
+  member_id: number; paid_cents: number; owed_cents: number; balance_cents: number
+  confirmed_out_cents: number; confirmed_in_cents: number; pending_out_cents: number; pending_in_cents: number
+  available_out_cents: number; available_in_cents: number
+}
+export interface Transfer { payer_member_id: number; payee_member_id: number; amount_cents: number }
+export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
+export type PaymentAction = 'confirm' | 'reject' | 'cancel'
+export interface Payment extends Transfer {
+  id: number; activity_id: number; status: PaymentStatus; created_at: string; updated_at: string
+}
+export interface PaymentCreate { payee_member_id: number; amount_cents: number; request_id: string }

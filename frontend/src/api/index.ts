@@ -1,6 +1,19 @@
 import { request } from './client'
 import type { Activity, ActivityInput, ActivityStatus, Credentials, Member, Registration, Statistics, Token, User } from './types'
 import type { Expense, ExpenseCreate, ExpenseInput, Share, SplitInput } from './types'
+import type { Balance, Payment, PaymentAction, PaymentCreate, PaymentStatus, Transfer } from './types'
+
+export const settlementApi = {
+  balances: (id: number, signal?: AbortSignal) => request<Balance[]>(`/activities/${id}/balances`, { signal }),
+  suggestions: (id: number, signal?: AbortSignal) => request<Transfer[]>(`/activities/${id}/settlement-suggestions`, { signal }),
+  payments: (id: number, query: { status?: PaymentStatus | ''; limit?: number; offset?: number }, signal?: AbortSignal) =>
+    request<Payment[]>(`/activities/${id}/payments`, { query, signal }),
+  create: (id: number, body: PaymentCreate) => request<Payment>(`/activities/${id}/payments`, { method: 'POST', body }),
+  change: (id: number, payment: number, action: PaymentAction) =>
+    request<Payment>(`/activities/${id}/payments/${payment}/${action}`, { method: 'POST' }),
+  start: (id: number) => request<Activity>(`/activities/${id}/start-settlement`, { method: 'POST' }),
+  archive: (id: number) => request<Activity>(`/activities/${id}/archive`, { method: 'POST' }),
+}
 
 export const authApi = {
   register: (body: Registration) => request<User>('/auth/register', { method: 'POST', body, public: true }),
