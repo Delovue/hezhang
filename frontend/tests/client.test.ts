@@ -62,4 +62,33 @@ describe('API request and error contracts', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html>bad gateway</html>', { status: 502 })))
     await expect(createHttpClient()('/activities')).rejects.toThrow('无法连接后端')
   })
+  it('downloads authenticated CSV but still interprets JSON errors', async () => {
+    const onUnauthorized = vi.fn()
+    const request = createHttpClient({ getToken: () => 'csv-token', onUnauthorized })
+    const fetcher = vi.fn().mockResolvedValue(new Response('金额\n1.01', { headers: { 'Content-Type': 'text/csv' } }))
+    vi.stubGlobal('fetch', fetcher)
+    const blob = await request<Blob>('/activities/1/export.csv', { responseType: 'blob' })
+    expect(await blob.text()).toBe('金额\n1.01')
+    expect(fetcher.mock.calls[0]![1].headers.get('Authorization')).toBe('Bearer csv-token')
+    fetcher.mockResolvedValue(reply({ detail: '请登录', code: 'AUTHENTICATION_REQUIRED' }, 401))
+    await expect(request('/activities/1/export.csv', { responseType: 'blob' })).rejects.toThrow('请登录')
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+  })
+  it('does not treat truncated successful JSON as a completed write', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{"id":', { status: 201 })))
+    await expect(createHttpClient()('/activities/1/expenses', { method: 'POST' }))
+      .rejects.toMatchObject({ status: 0, code: 'INVALID_RESPONSE' })
+  })
+  it('discards a response if the account changes during body decoding', async () => {
+    let token = 'before'
+    let finish!: (body: unknown) => void
+    let reading!: () => void
+    const started = new Promise<void>(resolve => { reading = resolve })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, ok: true,
+      json: () => { reading(); return new Promise(resolve => { finish = resolve }) },
+    }))
+    const pending = createHttpClient({ getToken: () => token, onUnauthorized: vi.fn() })('/activities')
+    await started; token = 'after'; finish([{ id: 1 }])
+    await expect(pending).rejects.toBeInstanceOf(RequestCancelled)
+  })
 })

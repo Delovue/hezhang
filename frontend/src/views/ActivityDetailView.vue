@@ -9,6 +9,7 @@ import type { Activity, Member, Statistics } from '../api/types'
 import ActivityFormDialog from '../components/ActivityFormDialog.vue'
 import ExpensePanel from '../components/ExpensePanel.vue'
 import SettlementPanel from '../components/SettlementPanel.vue'
+import ExportButton from '../components/ExportButton.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { useSessionStore } from '../stores/session'
 import { parseActivityId, statusDescriptions } from '../utils/activity'
@@ -86,6 +87,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
     <div v-if="loading && !activity" class="panel"><el-skeleton :rows="8" animated /></div>
     <div v-else-if="missing" class="empty-state"><h1>{{ error }}</h1><p>活动可能不存在，或当前账号尚未加入。</p><RouterLink to="/activities" class="text-link">返回活动列表 →</RouterLink></div>
     <template v-else-if="activity">
+      <div class="export-row"><ExportButton :activity-id="activity.id" :name="activity.name" /></div>
       <div class="page-heading detail-heading"><div><div class="eyebrow">OUR SHARED LEDGER</div><div class="detail-title"><h1>{{ activity.name }}</h1><StatusBadge :status="activity.status" /></div><p class="muted">{{ statusDescriptions[activity.status] }}</p></div><div class="heading-actions"><el-button :icon="Refresh" :loading="loading" @click="load">刷新</el-button><el-button v-if="canEdit" :icon="EditPen" @click="showEdit = true">编辑活动</el-button></div></div>
       <div class="detail-tabs" aria-label="活动内容">
         <button :class="{ selected: tab === 'overview' }" :aria-pressed="tab === 'overview'" @click="tab = 'overview'">活动概览</button>

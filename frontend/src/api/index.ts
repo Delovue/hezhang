@@ -40,4 +40,5 @@ export const activityApi = {
   update: (id: number, body: ActivityInput) => request<Activity>(`/activities/${id}`, { method: 'PATCH', body }),
   members: (id: number, signal?: AbortSignal) => request<Member[]>(`/activities/${id}/members`, { signal }),
   statistics: (id: number, signal?: AbortSignal) => request<Statistics>(`/activities/${id}/statistics`, { signal }),
+  exportCsv: (id: number) => request<Blob>(`/activities/${id}/export.csv`, { responseType: 'blob' }),
 }
