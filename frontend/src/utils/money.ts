@@ -20,3 +20,9 @@ export function formatCents(cents: number | null): string {
 export function centsToInput(cents: number | null): string {
   return cents === null ? '' : formatCents(cents).replaceAll(',', '')
 }
+
+/** 带正负号的余额：应收为“+”，应付为“−”，平账不带符号。 */
+export function signedCents(cents: number): string {
+  if (cents === 0) return formatCents(0)
+  return `${cents > 0 ? '+' : '−'}${formatCents(Math.abs(cents))}`
+}

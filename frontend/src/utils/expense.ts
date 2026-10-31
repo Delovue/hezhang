@@ -1,4 +1,4 @@
-import type { ExpenseInput, SplitMethod } from '../api/types'
+import type { Expense, ExpenseInput, SplitMethod } from '../api/types'
 import { parseYuan } from './money'
 
 export const splitLabels: Record<SplitMethod, string> = { EQUAL: '均摊', EXACT: '指定金额', SHARES: '按份数' }
@@ -30,4 +30,31 @@ export function expenseInput(draft: ExpenseDraft): ExpenseInput {
   return { title: draft.title.trim(), category: draft.category.trim(), amount_cents: amount,
     expense_date: draft.date, notes: draft.notes.trim() || null, payer_member_id: draft.payer,
     split_method: draft.method, participants }
+}
+
+const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+/** 账目按天分组的标题，例如“10月26日 周一”；日期按日历日解析，不受时区影响。 */
+export function dayLabel(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  return `${month}月${day}日 ${weekdays[new Date(Date.UTC(year!, month! - 1, day)).getUTCDay()]}`
+}
+
+/** 将已按日期排序的费用合并为连续的日期分组，并累计当天金额。 */
+export function groupByDay(rows: Expense[]): { date: string; total: number; rows: Expense[] }[] {
+  const groups: { date: string; total: number; rows: Expense[] }[] = []
+  for (const row of rows) {
+    const last = groups.at(-1)
+    if (last?.date === row.expense_date) { last.rows.push(row); last.total += row.amount_cents }
+    else groups.push({ date: row.expense_date, total: row.amount_cents, rows: [row] })
+  }
+  return groups
+}
+
+const knownCategories: Record<string, number> = { 餐饮: 0, 交通: 1, 住宿: 2, 门票: 3, 娱乐: 3, 购物: 4 }
+/** 分类图标配色：常见分类固定颜色，其他分类按名称取一个稳定的颜色。 */
+export function categoryTone(category: string): string {
+  const known = knownCategories[category.trim()]
+  if (known !== undefined) return `cat-${known}`
+  const sum = Array.from(category).reduce((total, char) => total + char.codePointAt(0)!, 0)
+  return `cat-${sum % 5}`
 }
