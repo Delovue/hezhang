@@ -61,10 +61,10 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
 
 <template>
   <section>
-    <div class="page-heading"><div><div class="eyebrow">YOUR SHARED STORIES</div><h1>我的活动<span class="heading-dot">.</span></h1><p class="muted">把共同的花费记在一起，让每一次相聚都轻松一点。</p></div>
+    <div class="page-heading"><div><div class="eyebrow">我的空间</div><h1>我的活动<span class="heading-dot">.</span></h1><p class="muted">把共同的花费记在一起，让每一次相聚都轻松一点。</p></div>
       <div class="heading-actions"><el-button :icon="Connection" @click="showJoin = true">邀请码加入</el-button><el-button type="primary" :icon="Plus" @click="showCreate = true">创建活动</el-button></div>
     </div>
-    <div class="welcome-banner"><div class="banner-text"><span class="eyebrow">GOOD TIMES, CLEAR ACCOUNTS</span><h2>下一次相聚，从这里开始。</h2><p>旅行、聚餐、周末小聚，都有一本清楚的共同账。</p><button class="banner-link" @click="showCreate = true">创建一本共同账本 <span aria-hidden="true">↗</span></button></div><div class="banner-art" aria-hidden="true"><div class="floating-note">一起去看看世界 <span>↗</span><i></i><i></i></div><div class="banner-circle"></div><span class="banner-spark">✳</span></div></div>
+    <div class="welcome-banner"><div class="banner-text"><span class="eyebrow">新建共同账本</span><h2>下一次相聚，从这里开始。</h2><p>旅行、聚餐、周末小聚，都有一本清楚的共同账。</p><button class="banner-link" @click="showCreate = true">创建一本共同账本 <span aria-hidden="true">↗</span></button></div><div class="banner-art" aria-hidden="true"><div class="floating-note">一起去看看世界 <span>↗</span><i></i><i></i></div><div class="banner-circle"></div><span class="banner-spark">✳</span></div></div>
     <div class="list-context"><p>当前列表 <strong>{{ activities.length }}</strong> 个活动 <span class="context-divider">/</span> <span>{{ activeCount }} 个进行中</span><span class="context-divider">/</span><span>{{ settlingCount }} 个结算中</span></p><el-button text :icon="Refresh" :loading="loading" @click="load()">刷新</el-button></div>
     <div class="list-toolbar"><div class="status-filters" aria-label="按活动状态筛选"><button v-for="status in statuses" :key="status" :class="{ selected: filter.status === status }" :aria-pressed="filter.status === status" @click="chooseStatus(status)">{{ status ? statusLabels[status] : '全部活动' }}</button></div>
       <form class="search-form" role="search" @submit.prevent="search"><el-input v-model="filter.q" aria-label="搜索活动名称" placeholder="搜索活动名称" maxlength="120" clearable :prefix-icon="Search" @clear="search" /><el-button native-type="submit">搜索</el-button></form>
