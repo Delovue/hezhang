@@ -56,7 +56,7 @@ test('three real browser accounts complete expenses, partial payments, rejection
     await settlement(c); await pay(c, '20')
     await expect(c.locator('.payment-card')).toContainText('待收款人确认')
     await expect(c.locator('.balance-card').filter({ hasText: '小陈' })).toContainText('应付 ¥ 40.00')
-    await expect(c.locator('.balance-card').filter({ hasText: '小陈' })).toContainText('¥ 20.00 / 0.00')
+    await expect(c.locator('.balance-card').filter({ hasText: '小陈' }).locator('[data-row="pending"] td').first()).toHaveText('¥ 20.00')
     await settlement(b)
     await expect(b.getByRole('button', { name: '确认收款', exact: true })).toHaveCount(0)
     const authB = await headers(request, accountB)
