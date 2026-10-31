@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElConfigProvider } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { ArrowRight, FolderOpened, SwitchButton } from '@element-plus/icons-vue'
+import { SwitchButton } from '@element-plus/icons-vue'
 import { useSessionStore } from './stores/session'
 import { errorMessage } from './api/client'
 import BrandMark from './components/BrandMark.vue'
@@ -33,20 +33,13 @@ function logout() {
 <template>
   <ElConfigProvider :locale="zhCn">
   <div v-if="session.user" class="app-shell">
-    <aside class="sidebar">
-      <RouterLink to="/activities" class="brand"><BrandMark /><span>合账<small>HEZHANG</small></span></RouterLink>
-      <p class="nav-label">我的空间</p>
-      <RouterLink to="/activities" class="side-link" :class="{ active: route.path.startsWith('/activities') }"><el-icon><FolderOpened /></el-icon>我的活动<el-icon class="nav-arrow"><ArrowRight /></el-icon></RouterLink>
-      <div class="sidebar-note"><span class="note-symbol" aria-hidden="true">↗</span><strong>一起出发，轻松合账</strong><p>记下共同的花费，<br />把时间留给相聚。</p></div>
-      <div class="sidebar-bottom"><span class="tiny-dot"></span>小组活动协作记账</div>
-    </aside>
-    <div class="main-shell">
-      <header class="topbar"><RouterLink to="/activities" class="mobile-brand"><BrandMark />合账</RouterLink><span class="topbar-caption">每一笔，都明明白白。</span>
-        <div class="account"><span class="avatar small" :class="avatarTone(session.user.id)" aria-hidden="true">{{ initial(session.user.display_name) }}</span><span class="account-name">{{ session.user.display_name }}</span><el-button text :icon="SwitchButton" aria-label="退出登录" @click="logout">退出</el-button></div>
-      </header>
-      <main id="main-content" class="page-content"><RouterView :key="session.generation" /></main>
-      <footer class="page-footer"><span>合账 · 让相聚更简单</span><span>共同记录 · 清晰分摊</span></footer>
-    </div>
+    <header class="topbar">
+      <RouterLink to="/activities" class="brand"><BrandMark />合账</RouterLink>
+      <nav class="top-nav" aria-label="主导航"><RouterLink to="/activities" :class="{ active: route.path.startsWith('/activities') }">我的活动</RouterLink></nav>
+      <div class="account"><span class="avatar mini" :class="avatarTone(session.user.id)" aria-hidden="true">{{ initial(session.user.display_name) }}</span><span class="account-name">{{ session.user.display_name }}</span><el-button text :icon="SwitchButton" aria-label="退出登录" @click="logout">退出</el-button></div>
+    </header>
+    <main id="main-content" class="page-content"><RouterView :key="session.generation" /></main>
+    <footer class="page-footer"><span>合账 · 小组活动协作记账</span><span>共同记录 · 清晰分摊 · 安心结算</span></footer>
   </div>
   <RouterView v-else :key="session.generation" />
 
