@@ -96,7 +96,8 @@ h1, h2, h3, p { margin-top: 0; }
 .el-alert__title { line-height: 1.7; font-size: 14px; overflow-wrap: anywhere; }
 .el-alert__icon { margin-top: 3px; }
 .el-progress-bar__outer { background-color: #eef0f5; }
-.el-progress-bar__inner { background: linear-gradient(90deg, #6366f1, #4f46e5); }
+/* 关闭展开动画，进度条直接显示最终长度 */
+.el-progress-bar__inner { background: linear-gradient(90deg, #6366f1, #4f46e5); transition: none; }
 .el-progress.is-exception .el-progress-bar__inner { background: linear-gradient(90deg, #fb923c, #ea580c); }
 .el-message-box { border-radius: 16px; padding: 22px; }
 
@@ -164,8 +165,9 @@ h1, h2, h3, p { margin-top: 0; }
 .auth-bottom { text-align: center; color: var(--muted); font-size: 13px; margin: 0; }
 
 /* 应用框架 */
-.app-shell { display: flex; min-height: 100vh; }
-.sidebar { position: fixed; inset: 0 auto 0 0; width: 232px; padding: 28px 16px 20px; background: #0f172a; color: #cbd5e1; display: flex; flex-direction: column; z-index: 10; }
+/* 侧边栏随页面滚动保持在视口内；深色背景由外层绘制，整页截图时也能延伸到底部 */
+.app-shell { --sidebar-width: 232px; display: flex; min-height: 100vh; background: linear-gradient(90deg, #0f172a var(--sidebar-width), transparent var(--sidebar-width)); }
+.sidebar { position: sticky; top: 0; height: 100vh; flex: 0 0 var(--sidebar-width); width: var(--sidebar-width); padding: 28px 16px 20px; background: #0f172a; color: #cbd5e1; display: flex; flex-direction: column; z-index: 10; }
 .sidebar .brand { color: #fff; padding: 0 10px; }
 .nav-label { color: #64748b; font-size: 12px; font-weight: 600; letter-spacing: 1px; margin: 40px 12px 10px; }
 .side-link { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #e2e8f0; border-radius: 10px; padding: 11px 12px; font-weight: 600; transition: background .15s; }
@@ -179,7 +181,7 @@ h1, h2, h3, p { margin-top: 0; }
 .sidebar-note p { font-size: 13px; line-height: 1.7; color: #94a3b8; margin: 6px 0 0; }
 .sidebar-bottom { padding: 16px 12px 0; color: #64748b; font-size: 12px; display: flex; align-items: center; gap: 8px; }
 .tiny-dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, .18); }
-.main-shell { margin-left: 232px; flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.main-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar { position: sticky; top: 0; z-index: 5; min-height: 64px; padding: 12px 40px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, .85); backdrop-filter: saturate(180%) blur(10px); }
 .topbar-caption { font-size: 14px; color: var(--muted); }
 .account { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 600; min-width: 0; }
@@ -411,8 +413,7 @@ a.activity-card:hover { border-color: #c7d2fe; box-shadow: var(--shadow-lg); tra
 .audit-table th:first-child { width: 18%; }
 
 @media (max-width: 1200px) {
-  .sidebar { width: 200px; }
-  .main-shell { margin-left: 200px; }
+  .app-shell { --sidebar-width: 200px; }
   .page-content { padding: 28px 28px 36px; }
   .topbar { padding-left: 28px; padding-right: 28px; }
   .page-footer { margin-left: 28px; margin-right: 28px; }
@@ -447,8 +448,8 @@ a.activity-card:hover { border-color: #c7d2fe; box-shadow: var(--shadow-lg); tra
   .auth-form-wrap { padding: 24px 0 20px; }
   .auth-form-wrap h2 { font-size: 26px; }
   .auth-bottom { padding: 16px 0 8px; }
+  .app-shell { background: none; }
   .sidebar { display: none; }
-  .main-shell { margin-left: 0; }
   .mobile-brand { display: inline-flex; gap: 8px; align-items: center; color: var(--text); font-size: 18px; font-weight: 800; }
   .mobile-brand .brand-mark { transform: scale(.75); transform-origin: left center; width: 28px; }
   .topbar { min-height: 58px; padding: 8px 16px; }
