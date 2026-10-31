@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths: ['frontend/**', 'backend/**', 'scripts/frontend_e2e_server.py', '.github/workflows/frontend.yml']
   push:
-    branches: [main, feat/frontend]
+    branches: [main, feat/frontend, feat/frontend-completion]
     paths: ['frontend/**', 'backend/**', 'scripts/frontend_e2e_server.py', '.github/workflows/frontend.yml']
 permissions:
   contents: read

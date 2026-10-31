@@ -1,0 +1,123 @@
+import { expect, test } from '@playwright/test'
+import { api, createActivity, expenseForm, headers, join, register } from './helpers'
+
+test('three split modes, partial participants, edit permission, filtering and deletion use the real API', async ({ page, browser }) => {
+  await register(page, '小王'); await createActivity(page, '分摊验证')
+  const code = await page.getByTestId('invite-code').innerText()
+  const guestContext = await browser.newContext()
+  try {
+    const guest = await guestContext.newPage(); await register(guest, '小李'); await join(guest, code)
+    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    let dialog = await expenseForm(page, '均摊一元', '1.01')
+    await dialog.getByRole('button', { name: '预览分摊' }).click()
+    await expect(dialog.locator('.preview-box')).toContainText('小王：¥ 0.51')
+    await expect(dialog.locator('.preview-box')).toContainText('小李：¥ 0.50')
+    await dialog.getByRole('button', { name: '保存费用' }).click()
+    await expect(page.locator('.expense-card')).toHaveCount(1)
+    dialog = await expenseForm(page, '指定金额餐费', '0.30')
+    await dialog.getByLabel('分摊方式', { exact: true }).selectOption('EXACT')
+    await dialog.getByLabel('小王承担金额', { exact: true }).fill('0.10')
+    await dialog.getByLabel('小李承担金额', { exact: true }).fill('0.19')
+    await dialog.getByRole('button', { name: '保存费用' }).click()
+    await expect(dialog.getByRole('alert')).toContainText('合计必须等于')
+    await dialog.getByLabel('小李承担金额', { exact: true }).fill('0.20')
+    await dialog.getByRole('button', { name: '保存费用' }).click()
+    await expect(page.locator('.expense-card')).toHaveCount(2)
+    dialog = await expenseForm(page, '个人车费', '6')
+    await dialog.getByLabel('分摊方式', { exact: true }).selectOption('SHARES')
+    await dialog.getByLabel('参与分摊：小李', { exact: true }).uncheck()
+    await dialog.getByLabel('小王份数', { exact: true }).fill('2')
+    await dialog.getByRole('button', { name: '预览分摊' }).click()
+    await expect(dialog.locator('.preview-box')).toContainText('小王：¥ 6.00')
+    await dialog.getByRole('button', { name: '保存费用' }).click()
+    await expect(page.locator('.expense-card')).toHaveCount(3)
+    await guest.getByRole('button', { name: '费用明细', exact: true }).click()
+    await expect(guest.locator('.expense-card')).toHaveCount(3)
+    await expect(guest.getByRole('button', { name: '编辑费用', exact: true })).toHaveCount(0)
+    await expect(guest.getByRole('button', { name: '删除费用', exact: true })).toHaveCount(0)
+    await page.getByLabel('费用关键词').fill('个人')
+    await page.getByRole('button', { name: '筛选费用' }).click()
+    await expect(page.locator('.expense-card')).toHaveCount(1)
+    await page.getByRole('button', { name: '删除费用', exact: true }).click()
+    await page.getByRole('button', { name: '确认删除', exact: true }).click()
+    await expect(page.locator('.expense-card')).toHaveCount(0)
+    await page.getByRole('button', { name: '活动概览' }).click()
+    await expect(page.getByTestId('total-spent')).toHaveText('¥ 1.31')
+  } finally { await guestContext.close() }
+})
+
+test('a lost creation response is safely retried and stale edits preserve the draft', async ({ page, request }) => {
+  const account = await register(page, '小王'); const id = await createActivity(page, '重试与冲突')
+  const auth = await headers(request, account)
+  let first = true; const keys: string[] = []
+  await page.route(`**/activities/${id}/expenses`, async route => {
+    if (route.request().method() !== 'POST') return route.continue()
+    keys.push(route.request().postDataJSON().request_id)
+    if (first) { first = false; await route.fetch(); await route.abort('failed') }
+    else await route.continue()
+  })
+  let dialog = await expenseForm(page, '网络重试费用', '10')
+  await dialog.getByRole('button', { name: '保存费用' }).click()
+  await expect(dialog.getByRole('button', { name: '重试原请求' })).toBeVisible()
+  await expect(dialog.getByLabel('费用名称', { exact: true })).toBeDisabled()
+  await dialog.getByRole('button', { name: '重试原请求' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(1)
+  expect(keys).toHaveLength(2); expect(keys[0]).toBe(keys[1])
+  const expenses = await (await request.get(`${api}/activities/${id}/expenses`, { headers: auth })).json()
+  expect(expenses).toHaveLength(1)
+  await page.getByRole('button', { name: '编辑费用', exact: true }).click()
+  dialog = page.getByRole('dialog', { name: '编辑费用' })
+  await dialog.getByLabel('费用名称', { exact: true }).fill('我的保留草稿')
+  const update = await request.patch(`${api}/activities/${id}/expenses/${expenses[0].id}`, { headers: auth, data: { version: 1, title: '另一窗口修改' } })
+  expect(update.status()).toBe(200)
+  await dialog.getByRole('button', { name: '保存费用' }).click()
+  await expect(dialog.getByRole('button', { name: '加载最新版本，保留输入' })).toBeVisible()
+  await expect(dialog.getByLabel('费用名称', { exact: true })).toHaveValue('我的保留草稿')
+  await dialog.getByRole('button', { name: '加载最新版本，保留输入' }).click()
+  await expect(dialog).toContainText('另一窗口修改')
+  await dialog.getByRole('button', { name: '保存费用' }).click()
+  await expect(page.locator('.expense-card')).toContainText('我的保留草稿')
+})
+
+test('loading more expenses keeps the applied filters until the user submits a new search', async ({ page, request }) => {
+  const account = await register(page, '小王'); const id = await createActivity(page, '费用分页')
+  const auth = await headers(request, account)
+  const members = await (await request.get(`${api}/activities/${id}/members`, { headers: auth })).json()
+  for (let i = 0; i < 21; i++) {
+    const response = await request.post(`${api}/activities/${id}/expenses`, { headers: auth, data: {
+      title: `费用 ${i}`, amount_cents: 1, category: '其他', expense_date: '2026-10-30', payer_member_id: members[0].id,
+      split_method: 'EQUAL', participants: [{ member_id: members[0].id }],
+    } })
+    expect(response.status()).toBe(201)
+  }
+  await page.getByRole('button', { name: '费用明细', exact: true }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(20)
+  await page.getByLabel('费用关键词').fill('没有这笔费用')
+  await page.getByRole('button', { name: '加载更多费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(21)
+  await page.getByRole('button', { name: '筛选费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(0)
+})
+
+test('a rejected stale deletion refreshes the record and keeps its conflict explanation visible', async ({ page, request }) => {
+  const account = await register(page, '小王'); const id = await createActivity(page, '删除冲突')
+  const auth = await headers(request, account)
+  const dialog = await expenseForm(page, '原费用', '10')
+  await dialog.getByRole('button', { name: '保存费用' }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(1)
+  const rows = await (await request.get(`${api}/activities/${id}/expenses`, { headers: auth })).json()
+  // Create the competing edit after the UI has captured its DELETE version. A pending
+  // list refresh from creation must not accidentally make this a fresh-version delete.
+  await page.route(`**/activities/${id}/expenses/${rows[0].id}?*`, async route => {
+    if (route.request().method() !== 'DELETE') return route.continue()
+    const version = Number(new URL(route.request().url()).searchParams.get('version'))
+    expect((await request.patch(`${api}/activities/${id}/expenses/${rows[0].id}`, { headers: auth,
+      data: { version, title: '他人更新后的费用' },
+    })).status()).toBe(200)
+    await route.continue()
+  })
+  await page.getByRole('button', { name: '删除费用', exact: true }).click()
+  await page.getByRole('button', { name: '确认删除', exact: true }).click()
+  await expect(page.locator('.expense-card')).toContainText('他人更新后的费用')
+  await expect(page.locator('.ledger-panel').getByRole('alert')).toContainText('费用已被修改')
+})

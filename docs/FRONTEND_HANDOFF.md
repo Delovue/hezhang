@@ -1,5 +1,15 @@
 # 角色甲前端交接与推进计划
 
+## 2026 年 10 月 31 日完整交接
+
+FR01–FR12 的页面均已接入真实后端。第一阶段之后新增费用增删改查、三种分摊预览、结算与付款状态处理、封账归档、历史前后变化与游标分页、CSV 导出。费用与付款创建都保留 UUID 请求编号，网络结果不确定时可安全重试；费用版本冲突要求加载最新记录并核对。所有最终权限仍由后端决定。
+
+新增组件为 `ExpensePanel`、`ExpenseEditor`、`SettlementPanel`、`PaymentDialog`、`AuditPanel`、`ExportButton`。`src/api/types.ts` 和 `src/api/index.ts` 直接对应 `backend/app/schemas.py` 及路由。所有金额使用整数分；成员字段使用 Membership.id；重复显示名追加成员编号。未引入第二套分摊算法。
+
+当前验证：类型检查与构建成功，59 项单元测试、17 项真实后端浏览器测试通过；Windows 干净目录复现和 Ubuntu CI 通过。演示初始化与联合启动使用 `scripts/course.py`。后续必做项目是课堂电脑、团队成员独立运行和现场演示验收，见 [系统报告](ACCEPTANCE_REPORT.md) 与 [演示指南](DEMO_GUIDE.md)。
+
+以下内容保留为第一阶段历史记录，其中“待开发”仅描述当时范围，已由上述集成工作补齐。
+
 本轮从已合并乙、丙后端的 `origin/main` 提交 `aac4fe1` 开始，在 `feat/frontend` 实现第一段可运行流程：注册登录 → 创建活动 → 邀请码加入 → 查看成员和预算统计。本轮没有修改后端业务逻辑。
 
 ## 已实现范围

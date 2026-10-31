@@ -44,4 +44,5 @@ Thumbs.db
 # Workspace-local dependency caches and isolated browser-test databases
 .cache/
 .e2e/
+.demo/
 *.tsbuildinfo

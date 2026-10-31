@@ -9,11 +9,14 @@ interface Options {
   /** Public calls and the candidate token's /me check must not expire an existing session. */
   public?: boolean
   token?: string
+  responseType?: 'json' | 'blob'
 }
 interface SessionHooks { getToken: () => string | null; onUnauthorized: () => void }
 const fieldNames: Record<string, string> = {
   username: '用户名', password: '密码', display_name: '显示名', name: '活动名称',
   budget_cents: '总预算', invite_code: '邀请码', q: '搜索关键词', status: '活动状态',
+  title: '费用名称', category: '费用分类', amount_cents: '金额', expense_date: '费用日期',
+  payer_member_id: '垫付人', payee_member_id: '收款人', participants: '分摊成员', notes: '备注',
 }
 
 function issueMessage(issue: ValidationIssue): string {
@@ -77,7 +80,18 @@ export function createHttpClient(hooks: SessionHooks = {
     }
     // A response from an old account must not update a new account's page or expire its token.
     if (boundToken && hooks.getToken() !== boundToken) throw new RequestCancelled()
-    const data: unknown = response.status === 204 ? undefined : await response.json().catch(() => undefined)
+    let data: unknown
+    let invalidBody = false
+    try {
+      data = response.status === 204 ? undefined
+        : options.responseType === 'blob' && response.ok ? await response.blob() : await response.json()
+    } catch (cause) {
+      if (isCancelled(cause)) throw cause
+      invalidBody = true
+    }
+    // The account can also change while a streamed response body is being read.
+    if (boundToken && hooks.getToken() !== boundToken) throw new RequestCancelled()
+    if (response.ok && invalidBody) throw new ApiError(0, 'INVALID_RESPONSE', '服务响应不完整，提交结果尚待确认。请核对记录或重试原请求。')
     if (!response.ok) {
       const payload = (data || {}) as Partial<ErrorResponse>
       const message = typeof payload.detail === 'string' ? payload.detail

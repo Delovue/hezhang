@@ -1,0 +1,102 @@
+# 合账系统验收与测试报告
+
+汇总日期：2026 年 10 月 31 日。最终浏览器验证基线 `905ac57`；后端与前端单元测试基线 `bfc238b`，相关源文件之后未变化；干净目录和已记录 CI 的基线为 `878c803`。PR #5 集成费用、结算、历史、导出、演示工具和课程材料。当前状态为课程候选版：自动化及本机验证通过，T20 中实际第二台电脑和团队现场验收未执行。
+
+## 一 环境与证据
+
+| 项目 | 本次实际结果 |
+| --- | --- |
+| 本地环境 | Windows，Python 3.12.16，Node.js 24.18.0，npm 11.16.0，Chromium |
+| 后端 pytest | 333 通过，0 失败，0 跳过；约 118.69 秒 |
+| app 语句覆盖 | 1344／1359，98.8962%；15 行未覆盖，详见结果 JSON |
+| 前端 Vitest | 59 通过，0 失败，0 跳过 |
+| 浏览器 Playwright | 17 通过，0 失败，0 跳过；约 69.35 秒；真实后端、隔离数据库 |
+| 类型检查与构建 | vue-tsc、Vite 构建成功 |
+| Python 静态检查 | Ruff check 与 format check 通过 |
+| 数据库迁移 | 0001 → 0002 → 0003 成功；alembic check 无待生成变更 |
+| 真实 HTTP 流程 | 18 项检查通过，随后重启服务的 3 项持久化检查通过 |
+| 干净目录复现 | git archive 导出 `878c803`；新建虚拟环境、uv sync --locked、npm ci、构建、三人浏览器流程与重启验证通过 |
+| 依赖审计 | 本次 npm ci 报告 0 vulnerabilities；不代表未来不会披露新漏洞 |
+| 桌面与手机布局 | 1280 宽桌面、390 宽移动视口截图检查；移动端未出现页面横向溢出 |
+
+逐用例名称、执行时间、结果及未覆盖行保存在 [local-results.json](verification/local-results.json)。截图来自本次真实应用的 Playwright 浏览器运行，使用虚构测试账号：[结算桌面](assets/settlement-desktop.png)、[结算移动端](assets/settlement-mobile.png)、[历史记录](assets/history-desktop.png)、[统计概览](assets/activity-overview.png)。
+
+`878c803` 的 [后端 CI](https://github.com/Delovue/hezhang/actions/runs/41086025356) 与 [前端 CI](https://github.com/Delovue/hezhang/actions/runs/41086025320) 均成功。它们在 Ubuntu 24.04 的新 runner 中安装锁定依赖；后端 CI 也执行真实 HTTP 和服务重启验证。最终合并时还需检查 PR 最新 head 的 CI，不能使用旧提交的成功结果替代。
+
+## 二 T01–T20 验收对应
+
+| 用例 | 实际检查与结果 | 主要自动化证据 | 状态 |
+| --- | --- | --- | --- |
+| T01 | 100 元三人均摊 33.34／33.33／33.33 | domain/test_split.py、test_split.py | 通过 |
+| T02 | 一分钱分配、输入顺序变化仍确定 | domain/test_split.py | 通过 |
+| T03 | 按份数分摊并保持金额守恒 | domain/test_split.py、expenses.spec.ts | 通过 |
+| T04 | 错误合计、非法份数、重复成员被拒绝 | test_split.py、test_expenses.py、expense.test.ts | 通过 |
+| T05 | 车费仅 A、B 分摊，C 不承担 | settlement.spec.ts、domain/test_balance.py | 通过 |
+| T06 | 三人例子余额 50／−10／−40 元 | test_balance_api.py、settlement.spec.ts | 通过 |
+| T07 | 待确认 20 元不改余额，只占用额度 | test_payments_api.py、settlement.spec.ts | 通过 |
+| T08 | 确认后余额 30／−10／−20 元 | test_payment_actions_api.py、settlement.spec.ts | 通过 |
+| T09 | 重试、重复确认、并发确认只生效一次 | test_settlement_concurrency.py、浏览器丢响应重试 | 通过 |
+| T10 | 并发付款不能超过双方额度 | test_settlement_concurrency.py、test_payments_api.py | 通过 |
+| T11 | 确认与撤销竞争只允许一个终态 | test_settlement_concurrency.py | 通过 |
+| T12 | 非收款人和跨活动操作被拒绝 | test_api_errors.py、test_payment_actions_api.py、浏览器 403 检查 | 通过 |
+| T13 | 封账后编辑被拒绝；封账与编辑并发保持一致 | test_settlement_concurrency.py、settlement.spec.ts | 通过 |
+| T14 | 旧 version 不覆盖新内容，前端保留草稿 | test_expenses.py、expenses.spec.ts | 通过 |
+| T15 | 审计失败时费用、分摊、付款和去重编号回滚 | test_payment_rollback.py、test_expense_requests.py、test_expenses.py | 通过 |
+| T16 | 结清可归档，未结清被拒绝 | test_lifecycle_api.py、settlement.spec.ts | 通过 |
+| T17 | 空活动或净额全零时直接结清 | test_lifecycle_api.py、settlement.spec.ts | 通过 |
+| T18 | 付款不计入消费；CSV 中文、份额、公式转义 | test_reports_api.py、export.spec.ts、settlement.spec.ts | 通过 |
+| T19 | 刷新重新登录、保存数据保留、进程重启后核对 | activities.spec.ts、course.py verify | 通过 |
+| T20 | 三人 UI 全流程及新目录、Ubuntu CI 复现通过；实际第二台电脑与四名成员验收待执行 | settlement.spec.ts、干净目录记录、CI | 部分完成 |
+
+前端文件位于 `frontend/e2e/` 或 `frontend/tests/`，后端文件位于 `backend/tests/`。并发测试使用同一文件数据库上的独立连接；浏览器账号使用独立会话，测试不复用演示数据库。覆盖率为语句覆盖，未进行形式化正确性证明或高并发容量测试。
+
+## 三 缺陷与验证过程
+
+| 发现 | 处理 | 回归证据 |
+| --- | --- | --- |
+| 测试工具依赖含已知漏洞 | Vitest 升至锁定的 4.1.12，重新安装依赖 | 单元测试通过，npm 审计当前为零 |
+| 成功状态但响应正文不完整会被当成成功 | 客户端返回 INVALID_RESPONSE，写表单保留原请求编号 | client.test.ts；费用、付款丢响应的真实浏览器重试 |
+| 读取响应正文期间切换账号可能接收旧数据 | 正文读取后再次检查绑定令牌 | client.test.ts |
+| 费用加载更多使用尚未提交的新筛选值 | 分页使用已提交的筛选快照 | expenses.spec.ts 的 21 笔费用分页用例 |
+| 删除费用的冲突说明被列表刷新清掉 | 单独保存操作错误，冲突时刷新最新记录与活动状态 | expenses.spec.ts 删除冲突用例 |
+| 同名成员在金额选择中难以区分 | 重复显示名追加成员编号 | members.test.ts |
+| 窄屏活动页签被截断 | 改为多列换行布局 | 390 像素视口及截图检查 |
+| 首轮浏览器断言未匹配原生 select 的可访问名称 | 补显式 aria-label 后复测 | expenses.spec.ts 通过 |
+| 首轮 CSV 测试错误假设备注在导出契约中 | 按真实契约测试费用说明、中文、逗号和公式前缀 | export.spec.ts 通过 |
+| 删除冲突用例与创建后的异步刷新竞争，整套运行时未必产生旧版本 | 在 DELETE 捕获版本后制造竞争更新，连续 3 次针对性验证通过，再全量 17 项通过 | expenses.spec.ts；失败记录摘要保留在结果 JSON |
+| 历史断言同时匹配错误提示和成功通知 | 将断言限定到历史面板 | history.spec.ts 通过 |
+
+开发期失败已如实记录，最终全量运行无失败。运行时仍有 Starlette 对现有 HTTPX TestClient 的弃用提示；它未影响此次测试，但后续升级依赖时应验证替代方案。没有为了隐藏提示而更改已锁定的后端依赖。
+
+## 四 重现命令
+
+后端，在 `backend/`：
+
+```text
+uv sync --locked
+uv run --locked ruff check app tests migrations
+uv run --locked ruff format --check app tests migrations
+uv run --locked pytest -q --cov=app --cov-report=term-missing
+```
+
+前端，在 `frontend/`：
+
+```text
+npm ci
+npm run build
+npm test
+npm run test:install-browser
+npm run test:e2e
+```
+
+系统重启检查，在仓库根目录：
+
+```powershell
+backend/.venv/Scripts/python.exe scripts/course.py verify --directory .e2e/acceptance-new
+```
+
+目录必须尚不存在；Linux/macOS 使用 `backend/.venv/bin/python`。没有 uv 命令时，可用已安装 uv 模块的解释器执行 `python -m uv`。CI 使用相同锁文件与业务测试。
+
+## 五 尚待人工完成
+
+课程正式发布前，需在实际第二台／课堂电脑完成 [DEMO_GUIDE.md](DEMO_GUIDE.md) 的最终验收清单，填写操作者、设备环境、版本哈希、运行结果和演示时长。此处不能用本机干净目录或云端 CI 冒充课堂设备验收。目前没有已知阻塞主流程的代码缺陷，也没有声称全部课程验收已完成。
