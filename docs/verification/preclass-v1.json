@@ -1,0 +1,198 @@
+{
+  "release": "v1.0.0",
+  "acceptance_owner": "role_d",
+  "execution": "Codex on local Windows",
+  "scope": "local_preclass",
+  "local_acceptance": "passed",
+  "classroom_demo": "pending",
+  "classroom_submission_identity_and_teacher_access": "deferred_by_user_to_classroom_submission",
+  "started_at": "2026-11-01T06:08:56.763693+00:00",
+  "finished_at": "2026-11-01T06:12:49.444627+00:00",
+  "environment": {
+    "python": "3.12.13",
+    "node": "v22.12.0",
+    "npm": "10.9.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "commit": "4e829ddc05cddb69df6f34a639df8d6191fe39c5",
+    "dirty": false,
+    "lockfiles_sha256": {
+      "backend/uv.lock": "f4887f0b7e09e5eb4bf84ec6fa4e368fb98001ba33258de59696920716ae0202",
+      "frontend/package-lock.json": "83e1d07939913f352ebd3253398c743d830c57b6927532b0304dc58de9614e1c"
+    }
+  },
+  "source_trees": {
+    "backend": "729baa1845981025a4aa20f8ef1febebe01c132a",
+    "frontend": "207686db7935cbd829f250f15ea3a67e69e55630",
+    "scripts": "f78795537255fc524f13e2041fb93d95a485563d",
+    ".github": "0c58923c2ddcde785708d20fa1be6ab54952eafd"
+  },
+  "installation": {
+    "uv_sync_locked": "passed",
+    "npm_ci": "passed",
+    "npm_audit_reported_vulnerabilities": 0,
+    "chromium": "existing local installed browser cache",
+    "source_worktree_clean_after_run": true
+  },
+  "checks": [
+    {
+      "name": "backend-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.297
+    },
+    {
+      "name": "backend-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.14
+    },
+    {
+      "name": "tooling-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.125
+    },
+    {
+      "name": "tooling-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.125
+    },
+    {
+      "name": "migrate",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.688
+    },
+    {
+      "name": "migration-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.89
+    },
+    {
+      "name": "backend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 126.016
+    },
+    {
+      "name": "frontend-build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 8.89
+    },
+    {
+      "name": "frontend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.422
+    },
+    {
+      "name": "browser-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 84.875
+    },
+    {
+      "name": "http-restart",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 8.172
+    }
+  ],
+  "backend": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "345",
+    "time": "121.116",
+    "timestamp": "2026-11-01T14:09:03.518748+08:00",
+    "hostname": "LAPTOP-699CF9K6"
+  },
+  "coverage": {
+    "covered_lines": 1344,
+    "num_statements": 1359,
+    "percent_covered": 98.8962472406181,
+    "percent_covered_display": "99",
+    "missing_lines": 15,
+    "excluded_lines": 0,
+    "percent_statements_covered": 98.8962472406181,
+    "percent_statements_covered_display": "99"
+  },
+  "unit": {
+    "numPassedTests": 66,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "browser": {
+    "startTime": "2026-11-01T06:11:17.385Z",
+    "duration": 83861.71800000001,
+    "expected": 19,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "http_checks": 18,
+  "restart_checks": 3,
+  "restart": {
+    "workflow_passed": true,
+    "restart_passed": true,
+    "python": "3.12.13"
+  },
+  "demo_serve": {
+    "source_commit": "4e829dd",
+    "command": "course.py prepare + serve",
+    "checks": [
+      "frontend_html",
+      "openapi_version_1.0.0",
+      "demo_a_proxy_login_members_empty_ledger",
+      "demo_b_proxy_login_members_empty_ledger",
+      "demo_c_proxy_login_members_empty_ledger"
+    ],
+    "passed": true
+  },
+  "case_results": {
+    "T01": "passed",
+    "T02": "passed",
+    "T03": "passed",
+    "T04": "passed",
+    "T05": "passed",
+    "T06": "passed",
+    "T07": "passed",
+    "T08": "passed",
+    "T09": "passed",
+    "T10": "passed",
+    "T11": "passed",
+    "T12": "passed",
+    "T13": "passed",
+    "T14": "passed",
+    "T15": "passed",
+    "T16": "passed",
+    "T17": "passed",
+    "T18": "passed",
+    "T19": "passed",
+    "T20": "passed"
+  },
+  "T20_definition": "role D clean local install, three-account UI flow, CSV, restart, demo serve",
+  "visual_review": {
+    "settlement_desktop": "passed",
+    "settlement_mobile_390px": "passed",
+    "performed_by": "Codex visual inspection; not classroom projection"
+  },
+  "report_sha256": {
+    "summary.json": "dc232dc100afc03078e65e8162aac8b438ac8cf240aa96b521a58d75d623bc3f",
+    "backend.xml": "d03973c86923548bf4a4eb57f94d7339b1e300c0a0afd8ad70794d40e45dd047",
+    "frontend.json": "1423cc3166e4f850d51185745101b3f4b21393840695d40d2a3b228a47ba2328",
+    "browser.json": "e16381e733bc65637a7ad96b44b2fbbc7681acdac1b5b977382a863422248f07",
+    "coverage.json": "1a52c173ff593eaf510f78a54adefcaa46dba586d796c51134fee50ff9b8fe15",
+    "http-restart.log": "0c7d69a7528053f032d8a0a54b555b6e8f6cf6e47c98dd499c885620e68e9f09"
+  },
+  "screenshots_sha256": {
+    "activity-overview.png": "4b6623d4d19cdc547dc1767bf052bbf6b55eb24ad491f3e1816116724b477ff4",
+    "history-desktop.png": "f031f697ea3567390632d40f86d8262a7dc6082a8331c80554b661c68ddb64db",
+    "settlement-desktop.png": "abc74204750af38ef9754973a200d04290f453dc76a7404ec1c7f70655ad245d",
+    "settlement-mobile.png": "8eb2c61d4603f826c01b700d70015ee7928dffdb024d7e90dc65aacae8720bb2"
+  }
+}

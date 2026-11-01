@@ -4,7 +4,7 @@
 
 项目以朋友旅行为主要场景，完成“创建活动 → 邀请成员 → 共同记账 → 费用分摊 → 付款确认 → 结清归档”的流程，并通过业务规则、测试和真实 Git 提交记录展示开发过程。
 
-**当前阶段：首版 FR01–FR12 已实现，包含完整前后端、演示工具和课程材料。2026-11-01 界面与角色丁工作集成复核：后端 345 项、前端单元 66 项、浏览器 19 项及重启验证通过；具备统一验收工具与 Windows／Ubuntu CI。实际课堂电脑和四名成员的现场验收仍待完成，当前作为课程候选版交付。版本与验证边界见系统验收报告及 [PR #6 集成复核](docs/PR6_REVIEW.md)。**
+**当前阶段：首版 FR01–FR12 已实现，包含完整前后端、演示工具和课程材料。2026-11-01 界面与角色丁工作集成复核：后端 345 项、前端单元 66 项、浏览器 19 项及重启验证通过；具备统一验收工具与 Windows／Ubuntu CI。由角色丁单独负责本机统一验收，发布 `v1.0.0` 课堂演示前第一版；仅课堂演示与提交事项留待现场完成。版本与验证边界见系统验收报告及 [PR #6 集成复核](docs/PR6_REVIEW.md)。**
 
 页面已接入注册登录、活动与成员、费用增删改查、三种分摊预览、余额与建议、部分付款及收款确认、封账归档、预算统计、操作历史与 CSV 导出。费用和付款重试保留请求编号；版本冲突保留输入并要求核对；同名成员显示编号。
 
@@ -13,7 +13,8 @@
 - [课程实验报告](docs/COURSE_REPORT.md)
 - [运行、演示讲稿与课堂验收](docs/DEMO_GUIDE.md)
 - [系统验收与测试记录](docs/ACCEPTANCE_REPORT.md)
-- [角色丁集成交接与未完成工作](docs/ROLE_D_HANDOFF.md)
+- [角色丁统一验收与收尾](docs/ROLE_D_HANDOFF.md)
+- [v1.0.0 发布记录与下载](docs/RELEASE_V1.md) · [GitHub Release](https://github.com/Delovue/hezhang/releases/tag/v1.0.0)
 
 - [后端交接说明](docs/BACKEND_HANDOFF.md)
 - [后端测试记录](docs/BACKEND_TEST_REPORT.md)
@@ -70,7 +71,7 @@ npm ci
 npm run dev
 ~~~
 
-浏览器打开 http://127.0.0.1:5173。Node.js 支持 22.12 以上的 22.x 或 24 以上版本；本次系统验收使用 24.18.0。依赖由 `frontend/package-lock.json` 锁定。
+浏览器打开 http://127.0.0.1:5173。Node.js 支持 22.12 以上的 22.x 或 24 以上版本；v1.0.0 本机验收使用 22.12.0。依赖由 `frontend/package-lock.json` 锁定。
 
 开发服务器将 `/api` 请求转发到 http://127.0.0.1:8000。需要其他地址时，将 `frontend/.env.example` 复制为 `frontend/.env.local`，修改 `HEZHANG_API_TARGET` 后重启前端。使用同一仓库版本的 `backend/` 和 `frontend/`，避免旧工作目录的服务与当前页面契约不一致。
 
@@ -98,7 +99,7 @@ backend/.venv/Scripts/python.exe scripts/acceptance.py --directory .e2e/acceptan
 
 Linux/macOS 使用 `backend/.venv/bin/python`。命令依次执行代码检查、隔离库迁移、后端测试与覆盖率、前端构建与单元测试、真实浏览器流程、HTTP 与服务重启验证。任何步骤失败立即返回非零退出码，后续步骤记为未运行；逐步日志、JSON／JUnit 报告及提交哈希保存在指定目录的 `summary.json` 及相邻文件中。已有结果不会被覆盖，开发数据库不会被用于迁移验证。
 
-自动化通过不代表课堂电脑及四名成员人工验收通过；结果中的人工验收始终为待完成。完整输出目录包含虚构测试数据与随机测试密钥，不要整目录发布；只提交核对后的报告，CI 也仅归档指定的测试证据文件。
+验收统一由角色丁执行，不要求四名成员各自运行或签字。报告格式 2 标明 `acceptance_owner=role_d`、`acceptance_scope=local_preclass`，自动化结果与 `classroom_demo=pending` 分开；角色丁复核与发布结论见发布记录，课堂演示留待现场。完整输出目录包含虚构测试数据与随机测试密钥，不要整目录发布；只提交核对后的报告，CI 也仅归档指定的测试证据文件。
 
 ## 独立演示环境
 
