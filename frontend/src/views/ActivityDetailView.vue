@@ -30,12 +30,14 @@ const statisticsError = ref('')
 const missing = ref(false)
 const tab = ref('expenses')
 const showEdit = ref(false)
-const refreshToken = ref(0)
+const refreshToken = ref(0), summaryToken = ref(0)
 let requestNumber = 0
 let controller: AbortController | null = null
 const currentMember = computed(() => members.value.find((member) => member.user_id === session.user?.id))
 const owner = computed(() => activity.value?.owner_id === session.user?.id)
 const canEdit = computed(() => owner.value && activity.value?.status === 'ACTIVE')
+/** 活动与成员均已成功加载，才允许录入依赖成员名单或余额的数据。 */
+const entryReady = computed(() => !loading.value && !error.value && !!currentMember.value)
 const memberNames = computed(() => members.value.map((member) => member.display_name).join('、'))
 const budgetProgress = computed(() => {
   if (!statistics.value || statistics.value.budget_cents === null) return 0
@@ -43,7 +45,8 @@ const budgetProgress = computed(() => {
   return Math.min(100, Math.round(statistics.value.total_spent_cents / statistics.value.budget_cents * 100))
 })
 
-async function load() {
+/** panels 为 false 时只刷新活动信息和右侧摘要：刚切换出的标签面板挂载时已自行加载，不必再请求一遍。 */
+async function load(panels = true) {
   if (!session.authenticated) return
   const currentRequest = ++requestNumber
   controller?.abort()
@@ -70,7 +73,8 @@ async function load() {
   if (report.status === 'fulfilled') statistics.value = report.value
   else if (!isCancelled(report.reason)) { statistics.value = null; statisticsError.value = errorMessage(report.reason) }
   loading.value = false
-  refreshToken.value++
+  summaryToken.value++
+  if (panels) refreshToken.value++
 }
 
 async function copyInvite() {
@@ -78,8 +82,8 @@ async function copyInvite() {
   try { await navigator.clipboard.writeText(activity.value.invite_code); ElMessage.success('邀请码已复制') }
   catch { ElMessage.info('自动复制不可用，请选中邀请码后手动复制') }
 }
-/** 标签内容与常驻摘要共用一次刷新通知，读取伙伴最新的成员、费用和付款变化。 */
-function select(next: string) { tab.value = next; void load() }
+/** 切换标签时同步刷新活动、成员与右侧摘要，读取伙伴最新的变化；再次点击当前标签则连同标签内容一起刷新。 */
+function select(next: string) { const switching = tab.value !== next; tab.value = next; void load(!switching) }
 function saved(updated: Activity) { activity.value = updated; ElMessage.success('活动已更新'); void load() }
 watch([() => route.params.id, () => session.authenticated], ([id, authenticated], previous) => {
   if (previous && id !== previous[0]) { activity.value = null; members.value = []; statistics.value = null; tab.value = 'expenses'; showEdit.value = false }
@@ -91,7 +95,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
 <template>
   <section class="detail-page">
     <div class="detail-toolbar"><RouterLink to="/activities" class="back-link"><el-icon><ArrowLeft /></el-icon>返回我的活动</RouterLink>
-      <div v-if="activity" class="heading-actions"><el-button :icon="Refresh" :loading="loading" @click="load">刷新</el-button><el-button v-if="canEdit" :icon="EditPen" @click="showEdit = true">编辑活动</el-button><ExportButton :activity-id="activity.id" :name="activity.name" /></div>
+      <div v-if="activity" class="heading-actions"><el-button :icon="Refresh" :loading="loading" @click="load()">刷新</el-button><el-button v-if="canEdit" :icon="EditPen" @click="showEdit = true">编辑活动</el-button><ExportButton :activity-id="activity.id" :name="activity.name" /></div>
     </div>
     <el-alert v-if="error && !missing" :title="error" type="error" :closable="false" show-icon role="alert" class="section-alert" />
     <div v-if="loading && !activity" class="panel"><el-skeleton :rows="8" animated /></div>
@@ -105,7 +109,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
           <span data-testid="budget">预算 <b>{{ statistics.budget_cents === null ? '未设置' : `¥ ${formatCents(statistics.budget_cents)}` }}</b><template v-if="statistics.remaining_budget_cents !== null"> · <span :class="{ over: statistics.over_budget }">{{ statistics.over_budget ? '已超出预算' : '剩余' }}</span> <b :class="{ over: statistics.over_budget }">¥ {{ formatCents(Math.abs(statistics.remaining_budget_cents)) }}</b></template></span>
         </div>
       </header>
-      <ActivityProgress :activity="activity" :owner="owner" @changed="load" />
+      <ActivityProgress :activity="activity" :owner="owner" @changed="load()" />
       <div class="detail-layout">
         <div class="detail-main">
           <div class="detail-tabs" aria-label="活动内容">
@@ -127,17 +131,17 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
             </template>
           </div>
           <article v-else-if="tab === 'members'" class="panel"><div class="panel-heading"><div><h2>一起记账的伙伴</h2><p class="muted">共 {{ members.length }} 位成员 · 我的身份：{{ currentMember?.role === 'OWNER' ? '创建者' : '成员' }}</p></div></div><div class="member-grid"><div v-for="member in members" :key="member.id" class="member-card"><span class="avatar" :class="avatarTone(member.id)" aria-hidden="true">{{ initial(member.display_name) }}</span><div><strong>{{ member.display_name }} <small v-if="member.user_id === session.user?.id">（我）</small></strong><span class="member-role">{{ member.role === 'OWNER' ? '活动创建者' : '活动成员' }}</span></div></div></div><p v-if="activity.status !== 'ACTIVE'" class="field-help">活动已封账，成员名单已冻结。</p></article>
-          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="!loading && !error && !!currentMember" @changed="load" />
-          <SettlementPanel v-else-if="tab === 'settlement'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
+          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="entryReady" @changed="load()" />
+          <SettlementPanel v-else-if="tab === 'settlement'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load()" />
           <AuditPanel v-else-if="tab === 'history'" :activity-id="activity.id" :members="members" :refresh-token="refreshToken" />
         </div>
         <aside class="detail-rail" aria-label="结算摘要">
-          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="!loading && !error && !!currentMember" @changed="load" @review="select('settlement')" />
+          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="summaryToken" :ready="entryReady" @changed="load()" @review="select('settlement')" />
           <section v-if="activity.invite_code" class="rail-card invite-card"><h2>邀请伙伴</h2><p class="muted">伙伴登录后输入邀请码即可加入。</p><div class="invite-code-row"><code data-testid="invite-code">{{ activity.invite_code }}</code><el-button text :icon="CopyDocument" @click="copyInvite">复制</el-button></div></section>
         </aside>
       </div>
     </template>
-    <div v-else-if="!loading && error" class="empty-state"><p>暂时无法加载活动。</p><el-button @click="load">重新加载</el-button></div>
+    <div v-else-if="!loading && error" class="empty-state"><p>暂时无法加载活动。</p><el-button @click="load()">重新加载</el-button></div>
   </section>
-  <ActivityFormDialog v-if="activity" v-model="showEdit" :activity="activity" @saved="saved" @refresh="load" />
+  <ActivityFormDialog v-if="activity" v-model="showEdit" :activity="activity" @saved="saved" @refresh="load()" />
 </template>
