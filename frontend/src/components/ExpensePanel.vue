@@ -80,7 +80,7 @@ onBeforeUnmount(() => controller?.abort())
     <el-alert v-if="error || actionError" :title="actionError || error" type="error" :closable="false" role="alert" />
     <div v-if="!rows.length && !busy && !error" class="inner-empty"><h3>暂无符合条件的费用</h3><p>新增共同支出，或调整筛选条件。</p></div>
     <div v-for="(group, index) in groups" :key="`${group.date}-${index}`" class="day-group">
-      <div class="day-head"><span>{{ dayLabel(group.date) }}</span><span class="money">¥ {{ formatCents(group.total) }}</span></div>
+      <div class="day-head"><span>{{ dayLabel(group.date) }}</span><span class="money">已加载小计 ¥ {{ formatCents(group.total) }}</span></div>
       <article v-for="row in group.rows" :key="row.id" class="expense-card" :data-testid="`expense-${row.id}`">
         <div class="expense-row">
           <span class="category-icon" :class="categoryTone(row.category)" aria-hidden="true">{{ Array.from(row.category)[0] }}</span>
