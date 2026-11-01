@@ -127,3 +127,44 @@ test('a failed member refresh keeps expense entry disabled until a successful re
   await add.click()
   await expect(page.getByRole('dialog', { name: '新增费用' }).getByLabel('参与分摊：小李', { exact: true })).toBeChecked()
 })
+
+test('payment entry waits for refreshed balances after a pending payment is rejected', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  await addExpense(request, activity, activity.guestId)
+  expect((await request.post(`${api}/activities/${activity.id}/start-settlement`, { headers: activity.ownerAuth })).ok()).toBeTruthy()
+  const pending = await request.post(`${api}/activities/${activity.id}/payments`, {
+    headers: activity.ownerAuth, data: { payee_member_id: activity.guestId, amount_cents: 200, request_id: randomUUID() },
+  })
+  expect(pending.status()).toBe(201)
+  await refreshActivity(page)
+  await expect(page.locator('.own-card')).toContainText('付给小李 ¥ 3.00')
+  const payment = await pending.json()
+  expect((await request.post(`${api}/activities/${activity.id}/payments/${payment.id}/reject`, { headers: activity.guestAuth })).ok()).toBeTruthy()
+
+  let release!: () => void, received!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const requested = new Promise<void>(resolve => { received = resolve })
+  await page.route(`**/api/v1/activities/${activity.id}/balances`, async route => {
+    const response = await route.fetch()
+    received()
+    await gate
+    await route.fulfill({ response })
+  })
+  const add = page.getByRole('button', { name: '登记已付款', exact: true })
+  try {
+    await Promise.all([requested, refreshActivity(page)])
+    await expect(add).toBeDisabled()
+    await expect(page.getByRole('button', { name: '按此建议登记' })).toBeDisabled()
+  } finally { release() }
+  await expect(page.locator('.own-card')).toContainText('付给小李 ¥ 5.00')
+  await expect(add).toBeEnabled()
+  await add.click()
+  const dialog = page.getByRole('dialog', { name: '登记已付款' })
+  await dialog.getByLabel('付款金额（元）').fill('5')
+  const [saved] = await Promise.all([
+    page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith(`/activities/${activity.id}/payments`)),
+    dialog.getByRole('button', { name: '提交付款登记' }).click(),
+  ])
+  expect(saved.status()).toBe(201)
+  await expect(dialog).not.toBeVisible()
+})
