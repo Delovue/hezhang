@@ -48,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="合账基础后端",
-        version="0.1.0",
+        version="1.0.0",
         lifespan=lifespan,
         description="认证、活动、成员、费用与审计（乙）；分摊预览、余额、结算与付款（丙）。金额单位为分。",
     )

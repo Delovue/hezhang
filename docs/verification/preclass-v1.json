@@ -1,0 +1,214 @@
+{
+  "release": "v1.0.0",
+  "acceptance_owner": "role_d",
+  "execution": "Codex on local Windows",
+  "scope": "local_preclass",
+  "local_acceptance": "passed",
+  "classroom_demo": "pending",
+  "classroom_submission_identity_and_teacher_access": "deferred_by_user_to_classroom_submission",
+  "started_at": "2026-11-01T06:21:08.742575+00:00",
+  "finished_at": "2026-11-01T06:25:06.809723+00:00",
+  "environment": {
+    "python": "3.12.13",
+    "node": "v22.12.0",
+    "npm": "10.9.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "commit": "e66c6c20e4dfe4f41b021575d0ca97d65a852622",
+    "dirty": false,
+    "lockfiles_sha256": {
+      "backend/uv.lock": "f4887f0b7e09e5eb4bf84ec6fa4e368fb98001ba33258de59696920716ae0202",
+      "frontend/package-lock.json": "83e1d07939913f352ebd3253398c743d830c57b6927532b0304dc58de9614e1c"
+    }
+  },
+  "source_trees": {
+    "backend": "729baa1845981025a4aa20f8ef1febebe01c132a",
+    "frontend": "d73960f89fd897bb16bb68298bee60485c2b15d0",
+    "scripts": "f78795537255fc524f13e2041fb93d95a485563d",
+    ".github": "0c58923c2ddcde785708d20fa1be6ab54952eafd"
+  },
+  "installation": {
+    "uv_sync_locked": "passed",
+    "npm_ci": "passed",
+    "npm_audit_reported_vulnerabilities": 0,
+    "chromium": "existing local installed browser cache",
+    "source_worktree_clean_after_run": true
+  },
+  "checks": [
+    {
+      "name": "backend-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.141
+    },
+    {
+      "name": "backend-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.125
+    },
+    {
+      "name": "tooling-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.125
+    },
+    {
+      "name": "tooling-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.125
+    },
+    {
+      "name": "migrate",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.906
+    },
+    {
+      "name": "migration-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.891
+    },
+    {
+      "name": "backend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 123.328
+    },
+    {
+      "name": "frontend-build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 8.141
+    },
+    {
+      "name": "frontend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.375
+    },
+    {
+      "name": "browser-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 94.766
+    },
+    {
+      "name": "http-restart",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 8.109
+    }
+  ],
+  "backend": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "345",
+    "time": "119.314",
+    "timestamp": "2026-11-01T14:21:13.734059+08:00",
+    "hostname": "LAPTOP-699CF9K6"
+  },
+  "coverage": {
+    "covered_lines": 1344,
+    "num_statements": 1359,
+    "percent_covered": 98.8962472406181,
+    "percent_covered_display": "99",
+    "missing_lines": 15,
+    "excluded_lines": 0,
+    "percent_statements_covered": 98.8962472406181,
+    "percent_statements_covered_display": "99"
+  },
+  "unit": {
+    "numPassedTests": 66,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "browser": {
+    "startTime": "2026-11-01T06:23:24.797Z",
+    "duration": 93874.54400000001,
+    "expected": 24,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "http_checks": 18,
+  "restart_checks": 3,
+  "restart": {
+    "workflow_passed": true,
+    "restart_passed": true,
+    "python": "3.12.13"
+  },
+  "demo_serve": {
+    "source_commit": "e66c6c2",
+    "command": "course.py prepare + serve",
+    "checks": [
+      "frontend_html",
+      "openapi_version_1.0.0",
+      "demo_a_proxy_login_members_empty_ledger",
+      "demo_b_proxy_login_members_empty_ledger",
+      "demo_c_proxy_login_members_empty_ledger"
+    ],
+    "passed": true
+  },
+  "case_results": {
+    "T01": "passed",
+    "T02": "passed",
+    "T03": "passed",
+    "T04": "passed",
+    "T05": "passed",
+    "T06": "passed",
+    "T07": "passed",
+    "T08": "passed",
+    "T09": "passed",
+    "T10": "passed",
+    "T11": "passed",
+    "T12": "passed",
+    "T13": "passed",
+    "T14": "passed",
+    "T15": "passed",
+    "T16": "passed",
+    "T17": "passed",
+    "T18": "passed",
+    "T19": "passed",
+    "T20": "passed"
+  },
+  "T20_definition": "role D clean local install, three-account UI flow, CSV, restart, demo serve",
+  "visual_review": {
+    "settlement_desktop": "passed",
+    "settlement_mobile_390px": "passed",
+    "performed_by": "Codex visual inspection; not classroom projection"
+  },
+  "report_sha256": {
+    "summary.json": "40fb31941f76ef470f311ef8f84b2323eff32d0bdf6d2451b000012600739e31",
+    "backend.xml": "d8d6712ec5e4101d261579563fd292b23b9b4022c398d13836746245bf03c6e8",
+    "frontend.json": "fab4515c1404463721af0fe3117157b7572929a7f9b27de7b5b4531beec46d5a",
+    "browser.json": "c43f4f4a11e3fdad8474896a89df53cd20d9c05d397fb8316cd452702d808e41",
+    "coverage.json": "843c3180813362aa263c8b283936ca2a008b215043f821c663f7d1b3764243f4",
+    "http-restart.log": "da6fcba1ec15b5bdfce09ce6b9b101205334064ba8accd633356a64e15ce162c"
+  },
+  "initial_acceptance": {
+    "commit": "4e829dd",
+    "backend": 345,
+    "unit": 66,
+    "browser": 19,
+    "status": "passed",
+    "superseded_by": "final integration including PR8"
+  },
+  "pr8_ci_repair": {
+    "failed_run": 41279569608,
+    "failed_head": "ae0fbee",
+    "repair_commit": "d1d0248",
+    "root_cause": "payment entry opened while stale balances were refreshing after rejection",
+    "red_regression": "payment entry enabled while delayed balance response pending",
+    "green_targeted_browser_tests": 8
+  },
+  "screenshots_sha256": {
+    "activity-overview.png": "ac9a6236039cd7d0565fef6a01a4e2bd1f8342773f93c5226617e3efd126999c",
+    "history-desktop.png": "25e9dd600923367f10257e0c1ad711c512e4d8d71cfb84cde11e83c31c309260",
+    "settlement-desktop.png": "3be6ed4bf9fdb437bb2494d1ef361c641953a60e425cc0e03abef5b4ed590290",
+    "settlement-mobile.png": "3fb9d756072e3f73874aa7e3ea015510b9f42b4da2855b9b0f948fbc610d23b9"
+  }
+}

@@ -2,9 +2,9 @@
 
 实验题目：面向小组活动的协作记账与费用结算系统的设计与实现。交付版本为课程候选版，整理日期为 2026 年 10 月 31 日。源码与维护记录位于 [Delovue/hezhang](https://github.com/Delovue/hezhang)。
 
-本项目已实现从多人记账到结清归档的完整 Web 流程。FR01–FR12 均有实际页面和后端实现，本地全量自动化测试通过；课堂电脑复现、四名成员独立运行及现场讲解仍需按[演示与验收清单](DEMO_GUIDE.md)完成，因此本报告不将 T20 标记为全部通过。
+本项目已实现从多人记账到结清归档的完整 Web 流程。FR01–FR12 均有实际页面和后端实现，本地全量自动化测试通过；按 2026-11-01 的用户要求，改为角色丁在本机统一完成 T01–T20 测试验收，发布 v1.0.0；课堂设备、计时与现场讲解按[演示清单](DEMO_GUIDE.md)另行完成。
 
-2026-11-01 角色丁补充统一验收工具、Windows／Ubuntu CI 及证据归档，修复本地验证受系统代理影响和浏览器测试的成员刷新时序问题。本轮本地后端 345 项、前端单元 59 项、浏览器 17 项及重启验证通过；详细版本、开发期失败与人工待办见 [系统验收报告](ACCEPTANCE_REPORT.md) 及 [角色丁交接](ROLE_D_HANDOFF.md)。原报告中的 333 项结果为 10 月 31 日的历史基线。
+2026-11-01 角色丁补充统一验收工具、Windows／Ubuntu CI 及证据归档，修复代理隔离、慢响应等待和界面提示问题。合入 PR #8 最终代码后的最新基线为后端 345 项、前端单元 66 项、浏览器 26 项；v1.0.0 干净目录验收与交付证据见 [发布记录](RELEASE_V1.md)、[系统验收报告](ACCEPTANCE_REPORT.md) 及 [角色丁交接](ROLE_D_HANDOFF.md)。原报告中的 333 项结果为 10 月 31 日的历史基线。
 
 ## 一 选题背景与目标
 
@@ -161,9 +161,9 @@ stateDiagram-v2
 | 登录与会话恢复 | [session.ts](../frontend/src/stores/session.ts)、[App.vue](../frontend/src/App.vue) | [auth.py](../backend/app/api/auth.py)、[security.py](../backend/app/security.py) |
 | 录入、编辑、删除费用 | [ExpenseEditor.vue](../frontend/src/components/ExpenseEditor.vue)、[ExpensePanel.vue](../frontend/src/components/ExpensePanel.vue) | [expense.py](../backend/app/services/expense.py)：create_expense、update_expense、delete_expense |
 | 三种分摊与余数 | [expense.ts](../frontend/src/utils/expense.ts) 只校验输入 | [split.py](../backend/app/domain/split.py)：calculate_split、compute_split、split_equal、split_exact、split_shares |
-| 应收应付与建议 | [SettlementPanel.vue](../frontend/src/components/SettlementPanel.vue) | [balance.py](../backend/app/domain/balance.py)：compute_balances；[settlement.py](../backend/app/domain/settlement.py)：suggest_transfers |
+| 应收应付与建议 | [SettlementSummary.vue](../frontend/src/components/SettlementSummary.vue)、[SettlementPanel.vue](../frontend/src/components/SettlementPanel.vue) | [balance.py](../backend/app/domain/balance.py)：compute_balances；[settlement.py](../backend/app/domain/settlement.py)：suggest_transfers |
 | 部分付款和确认 | [PaymentDialog.vue](../frontend/src/components/PaymentDialog.vue) | [payment.py](../backend/app/services/payment.py)：create_payment、change_payment |
-| 封账和归档 | SettlementPanel 的 lifecycle | [lifecycle.py](../backend/app/services/lifecycle.py)：start_settlement、settle_if_cleared、archive_activity |
+| 封账和归档 | [ActivityProgress.vue](../frontend/src/components/ActivityProgress.vue) 的 lifecycle | [lifecycle.py](../backend/app/services/lifecycle.py)：start_settlement、settle_if_cleared、archive_activity |
 | 事务与并发 | 请求冲突提示 | [database.py](../backend/app/database.py)：transaction、begin_sqlite；[dependencies.py](../backend/app/api/dependencies.py)：get_session |
 | 历史和 CSV | [AuditPanel.vue](../frontend/src/components/AuditPanel.vue)、[ExportButton.vue](../frontend/src/components/ExportButton.vue) | [audit.py](../backend/app/services/audit.py)、[export.py](../backend/app/services/export.py) |
 
@@ -175,7 +175,7 @@ stateDiagram-v2
 
 浏览器用例使用独立临时数据库和不同账号会话，实际执行记账、分摊、部分付款、收款确认、拒绝、撤销、归档、历史和导出。另有 18 项真实 HTTP 检查与服务进程重启后的 3 项持久化检查。全新源码目录重新安装锁定依赖后，构建、三人浏览器全流程与重启检查再次通过。Ubuntu 24.04 的 GitHub Actions 同时验证后端和前端。
 
-详细命令、T01–T20 对应关系、缺陷修复、CI 链接与尚未完成的人工验收见 [系统验收与测试报告](ACCEPTANCE_REPORT.md)，逐用例结果见 [local-results.json](verification/local-results.json)。
+详细命令、T01–T20 对应关系、缺陷修复、CI 链接与课堂演示待办见 [系统验收与测试报告](ACCEPTANCE_REPORT.md)，逐用例结果见 [local-results.json](verification/local-results.json)。
 
 ## 七 开发过程与分工
 
@@ -187,6 +187,6 @@ stateDiagram-v2
 
 本项目把“记账”扩展为可核对、可追溯的协作流程。主要工程成果是整数金额守恒、费用与付款分离、明确的权限及状态机、事务内去重与额度保护，以及功能到测试和源码的可追踪关系。
 
-当前可以在本地运行并完成演示，依赖安装后日常操作无需外部服务。首版未提供生产部署、密码找回、真实支付或高并发容量保证。课程最终验收还应在实际课堂电脑完成安装与三人流程，确认投影可读、3–5 分钟演示节奏及四名成员对代码的理解。完成这些人工项目后再建立正式课程发布标签。
+当前可以在本地运行并完成演示，依赖安装后日常操作无需外部服务。首版未提供生产部署、密码找回、真实支付或高并发容量保证。角色丁统一本机测试验收后发布 v1.0.0。课堂演示仍需在实际目标电脑确认启动、投影可读、两次 3–5 分钟流程和代码讲解；身份与教师访问资料按用户说明在课堂提交时提供。现场完成后再按要求建立 v1.0-course 标签。
 
 [运行与演示说明](DEMO_GUIDE.md) · [系统验收记录](ACCEPTANCE_REPORT.md) · [开发计划](DEVELOPMENT_PLAN.md)
