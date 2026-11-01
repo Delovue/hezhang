@@ -23,6 +23,7 @@ jobs:
       PYTHONUTF8: '1'
     defaults:
       run:
+        shell: bash
         working-directory: frontend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -57,6 +58,7 @@ jobs:
         with:
           name: frontend-evidence-${{ matrix.os }}-${{ github.sha }}
           retention-days: 14
+          include-hidden-files: true
           if-no-files-found: warn
           path: |
             .e2e/frontend-unit.json

@@ -54,6 +54,7 @@ jobs:
         with:
           name: backend-evidence-${{ matrix.os }}-${{ github.sha }}
           retention-days: 14
+          include-hidden-files: true
           if-no-files-found: warn
           path: |
             .e2e/backend-tests.xml
