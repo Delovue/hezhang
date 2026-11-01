@@ -31,3 +31,9 @@ it('keeps a stable icon tone for every category', () => {
 it('signs balances so receivable and payable amounts read differently', () => {
   expect([26700, -30100, 0].map(signedCents)).toEqual(['+267.00', '−301.00', '0.00'])
 })
+
+it('treats object prototype names as ordinary custom categories', () => {
+  for (const category of ['constructor', '__proto__', 'toString']) {
+    expect(categoryTone(category)).toMatch(/^cat-[0-4]$/)
+  }
+})

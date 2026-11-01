@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
-import { api, createActivity, expenseForm, headers, join, register } from './helpers'
+import { api, createActivity, expenseForm, headers, join, refreshActivity, register } from './helpers'
 
 async function settlement(page: Page) {
-  await page.getByRole('button', { name: '刷新', exact: true }).click()
+  await refreshActivity(page)
   await page.getByRole('button', { name: '结算与付款', exact: true }).click()
   await expect(page.locator('.balance-card').first()).toBeVisible()
 }
@@ -25,6 +25,7 @@ async function seal(page: Page) {
 }
 
 test('three real browser accounts complete expenses, partial payments, rejection, cancellation and archive', async ({ page, browser, request }) => {
+  test.setTimeout(120_000)
   const accountA = await register(page, '小王'); const id = await createActivity(page, '三人出游全流程')
   const code = await page.getByTestId('invite-code').innerText()
   const contextB = await browser.newContext(), contextC = await browser.newContext()
@@ -32,12 +33,12 @@ test('three real browser accounts complete expenses, partial payments, rejection
     const b = await contextB.newPage(), c = await contextC.newPage()
     const accountB = await register(b, '小李'); await join(b, code)
     await register(c, '小陈'); await join(c, code)
-    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(page)
     let dialog = await expenseForm(page, '三人午餐', '120')
     await expect(dialog.getByLabel('参与分摊：小陈', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: '保存费用' }).click()
     await expect(page.locator('.expense-card')).toHaveCount(1)
-    await b.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(b)
     dialog = await expenseForm(b, '两人车费', '60')
     await dialog.getByLabel('费用分类').fill('交通')
     await dialog.getByLabel('参与分摊：小陈', { exact: true }).uncheck()
@@ -55,6 +56,8 @@ test('three real browser accounts complete expenses, partial payments, rejection
     await expect(page.getByRole('button', { name: '编辑费用', exact: true })).toHaveCount(0)
     await settlement(c); await pay(c, '20')
     await expect(c.locator('.payment-card')).toContainText('待收款人确认')
+    await expect(c.locator('.settlement-summary')).toContainText('2 笔建议')
+    await expect(c.locator('.settlement-summary')).toContainText('仍有付款等待确认，确认后才会抵扣余额。')
     await expect(c.locator('.balance-card').filter({ hasText: '小陈' })).toContainText('应付 ¥ 40.00')
     await expect(c.locator('.balance-card').filter({ hasText: '小陈' }).locator('[data-row="pending"] td').first()).toHaveText('¥ 20.00')
     await settlement(b)
@@ -74,8 +77,12 @@ test('three real browser accounts complete expenses, partial payments, rejection
     await settlement(page); await action(page, '确认收款')
     await expect(page.locator('.balance-card').filter({ hasText: '小陈' })).toContainText('已平账 ¥ 0.00')
     await settlement(b); await pay(b, '10')
+    await expect(b.locator('.settlement-summary')).toContainText('暂无可登记的转账，仍有付款等待确认。')
+    await expect(b.locator('.detail-title')).toContainText('结算中')
     await settlement(page); await action(page, '确认收款')
     await expect(page.locator('.detail-title')).toContainText('已结清')
+    await expect(page.locator('.settlement-summary')).toContainText('暂无需要的转账。')
+    await expect(page.locator('.settlement-summary')).not.toContainText('仍有付款等待确认')
     await expect(page.locator('.balance-card').filter({ hasText: '已平账 ¥ 0.00' })).toHaveCount(3)
     await page.getByRole('button', { name: '归档活动', exact: true }).click()
     await page.getByRole('button', { name: '确认继续' }).click()
@@ -121,7 +128,7 @@ test('retry after a committed payment response is lost creates exactly one payme
   const context = await browser.newContext()
   try {
     const payer = await context.newPage(); await register(payer, '付款人'); await join(payer, code)
-    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(page)
     const expense = await expenseForm(page, '餐费', '10')
     await expense.getByRole('button', { name: '保存费用' }).click()
     await expect(expense).not.toBeVisible(); await settlement(page); await seal(page)

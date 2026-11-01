@@ -16,6 +16,7 @@ const currentMember = computed(() => props.members.find(row => row.user_id === p
 const own = computed(() => balances.value.find(row => row.member_id === currentMember.value))
 const toPay = computed(() => suggestions.value.filter(row => row.payer_member_id === currentMember.value))
 const toReceive = computed(() => suggestions.value.filter(row => row.payee_member_id === currentMember.value))
+const hasPending = computed(() => balances.value.some(row => row.pending_out_cents > 0 || row.pending_in_cents > 0))
 const largest = computed(() => Math.max(1, ...balances.value.map(row => Math.abs(row.balance_cents))))
 const tone = computed(() => !own.value || own.value.balance_cents === 0 ? 'settled' : own.value.balance_cents > 0 ? 'receivable' : 'payable')
 let controller: AbortController | null = null
@@ -63,14 +64,15 @@ onBeforeUnmount(() => controller?.abort())
       </div>
     </section>
     <section v-if="balances.length" class="rail-card">
-      <h2>转账建议 <small v-if="suggestions.length">{{ suggestions.length }} 笔即可结清</small></h2>
+      <h2>转账建议 <small v-if="suggestions.length">{{ suggestions.length }} 笔建议</small></h2>
+      <p v-if="hasPending && suggestions.length" class="muted">仍有付款等待确认，确认后才会抵扣余额。</p>
       <div v-for="(row, index) in suggestions" :key="index" class="suggestion-row">
         <span class="avatar mini" :class="avatarTone(row.payer_member_id)" :title="name(row.payer_member_id)" aria-hidden="true">{{ initial(name(row.payer_member_id)) }}</span>
         <span class="suggestion-text">{{ name(row.payer_member_id) }} <span class="suggestion-arrow" aria-label="付给">→</span> {{ name(row.payee_member_id) }}</span>
         <strong class="money">¥ {{ formatCents(row.amount_cents) }}</strong>
         <el-button v-if="activity.status === 'SETTLING' && row.payer_member_id === currentMember" size="small" :aria-label="`按此建议登记：付给${name(row.payee_member_id)} ¥ ${formatCents(row.amount_cents)}`" @click="register(row)">登记</el-button>
       </div>
-      <p v-if="!busy && !suggestions.length" class="muted">暂无需要的转账。</p>
+      <p v-if="!busy && !suggestions.length" class="muted">{{ hasPending ? '暂无可登记的转账，仍有付款等待确认。' : '暂无需要的转账。' }}</p>
     </section>
     <PaymentDialog v-model="dialog" :activity="activity" :balances="balances" :members="members" :member-id="currentMember" :suggestion="suggestion" @saved="saved" @refresh="emit('changed')" />
   </div>

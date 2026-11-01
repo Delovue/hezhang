@@ -28,7 +28,9 @@ API = BASE + "/api/v1"
 PASSWORD = "Demo-pass-2026"
 STATE_FILE = args.state
 
-c = httpx.Client(timeout=10)
+# This harness targets a locally started, isolated server. Shell proxy settings
+# must not route its loopback requests through an unrelated proxy.
+c = httpx.Client(timeout=10, trust_env=False)
 results = []
 
 

@@ -54,7 +54,7 @@ const knownCategories: Record<string, number> = { 餐饮: 0, 交通: 1, 住宿: 
 /** 分类图标配色：常见分类固定颜色，其他分类按名称取一个稳定的颜色。 */
 export function categoryTone(category: string): string {
   const known = knownCategories[category.trim()]
-  if (known !== undefined) return `cat-${known}`
+  if (Object.hasOwn(knownCategories, category.trim())) return `cat-${known}`
   const sum = Array.from(category).reduce((total, char) => total + char.codePointAt(0)!, 0)
   return `cat-${sum % 5}`
 }
