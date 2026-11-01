@@ -82,3 +82,48 @@ test('the pending receipt shortcut refreshes even when the settlement tab is alr
   await expect(page.getByRole('button', { name: '去处理', exact: true })).toHaveCount(0)
   await expect(page.locator('.own-card')).toContainText('还应收回 ¥ 5.00，来自小李')
 })
+
+test('expense entry waits until refreshed members arrive before capturing split participants', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  let release!: () => void, received!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const requested = new Promise<void>(resolve => { received = resolve })
+  const memberUrl = `**/api/v1/activities/${activity.id}/members`
+  await page.route(memberUrl, async route => {
+    const response = await route.fetch()
+    received()
+    await gate
+    await route.fulfill({ response })
+  })
+  const add = page.getByRole('button', { name: '新增费用', exact: true })
+  try {
+    await Promise.all([requested, page.getByRole('button', { name: '刷新', exact: true }).click()])
+    await expect(add).toBeDisabled()
+  } finally { release() }
+  await expect(page.getByRole('button', { name: /活动成员/ })).toContainText('2')
+  await expect(add).toBeEnabled()
+  await add.click()
+  const dialog = page.getByRole('dialog', { name: '新增费用' })
+  await expect(dialog.getByLabel('参与分摊：小李', { exact: true })).toBeChecked()
+  await dialog.getByLabel('费用名称', { exact: true }).fill('等待后录入')
+  await dialog.getByLabel('费用总额（元）').fill('1.01')
+  await dialog.getByRole('button', { name: '预览分摊' }).click()
+  await expect(dialog.locator('.preview-box')).toContainText('小王：¥ 0.51')
+  await expect(dialog.locator('.preview-box')).toContainText('小李：¥ 0.50')
+})
+
+test('a failed member refresh keeps expense entry disabled until a successful retry', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  const memberUrl = `**/api/v1/activities/${activity.id}/members`
+  await page.route(memberUrl, route => route.fulfill({ status: 503, contentType: 'application/json',
+    body: JSON.stringify({ detail: '成员加载暂时失败', code: 'DATABASE_BUSY', retryable: true }) }))
+  await page.getByRole('button', { name: '刷新', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('成员加载暂时失败')
+  const add = page.getByRole('button', { name: '新增费用', exact: true })
+  await expect(add).toBeDisabled()
+  await page.unroute(memberUrl)
+  await refreshActivity(page)
+  await expect(add).toBeEnabled()
+  await add.click()
+  await expect(page.getByRole('dialog', { name: '新增费用' }).getByLabel('参与分摊：小李', { exact: true })).toBeChecked()
+})

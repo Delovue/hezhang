@@ -127,7 +127,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
             </template>
           </div>
           <article v-else-if="tab === 'members'" class="panel"><div class="panel-heading"><div><h2>一起记账的伙伴</h2><p class="muted">共 {{ members.length }} 位成员 · 我的身份：{{ currentMember?.role === 'OWNER' ? '创建者' : '成员' }}</p></div></div><div class="member-grid"><div v-for="member in members" :key="member.id" class="member-card"><span class="avatar" :class="avatarTone(member.id)" aria-hidden="true">{{ initial(member.display_name) }}</span><div><strong>{{ member.display_name }} <small v-if="member.user_id === session.user?.id">（我）</small></strong><span class="member-role">{{ member.role === 'OWNER' ? '活动创建者' : '活动成员' }}</span></div></div></div><p v-if="activity.status !== 'ACTIVE'" class="field-help">活动已封账，成员名单已冻结。</p></article>
-          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
+          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="!loading && !error && !!currentMember" @changed="load" />
           <SettlementPanel v-else-if="tab === 'settlement'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
           <AuditPanel v-else-if="tab === 'history'" :activity-id="activity.id" :members="members" :refresh-token="refreshToken" />
         </div>
