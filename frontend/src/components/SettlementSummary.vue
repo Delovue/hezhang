@@ -37,7 +37,7 @@ async function load() {
 }
 function register(transfer?: Transfer) { if (paymentReady.value) { suggestion.value = transfer; dialog.value = true } }
 function saved() { ElMessage.success('付款已登记，等待收款人确认'); emit('changed') }
-watch(() => [props.activity.id, props.activity.status, props.refreshToken], () => void load(), { immediate: true })
+watch([() => props.activity.id, () => props.activity.status, () => props.refreshToken], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 

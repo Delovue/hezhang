@@ -25,7 +25,7 @@ async function load(append = false) {
   } catch (cause) { if (!isCancelled(cause)) error.value = errorMessage(cause) }
   finally { if (controller === current) busy.value = false }
 }
-watch(() => [props.activityId, props.refreshToken], () => void load(), { immediate: true })
+watch([() => props.activityId, () => props.refreshToken], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 

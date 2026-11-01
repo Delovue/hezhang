@@ -55,7 +55,7 @@ async function remove(row: Expense) {
   finally { deleting.value = 0; void load() }
 }
 function saved() { ElMessage.success('费用已保存'); emit('changed') }
-watch(() => [props.activity.id, props.activity.status, props.refreshToken], () => void load(), { immediate: true })
+watch([() => props.activity.id, () => props.activity.status, () => props.refreshToken], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 
