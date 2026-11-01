@@ -75,7 +75,7 @@ npm ci
 npm run dev
 ~~~
 
-浏览器打开 http://127.0.0.1:5173。Node.js 支持 22.12 以上的 22.x 或 24 以上版本；v1.0.0 本机验收使用 22.12.0。依赖由 `frontend/package-lock.json` 锁定。
+浏览器打开 http://127.0.0.1:5173。Node.js 支持 22.12 以上的 22.x 或 24 以上版本；v1.0.0 首轮本机验收使用 22.12.0，最终验收使用 24.16.0。依赖由 `frontend/package-lock.json` 锁定。
 
 开发服务器将 `/api` 请求转发到 http://127.0.0.1:8000。需要其他地址时，将 `frontend/.env.example` 复制为 `frontend/.env.local`，修改 `HEZHANG_API_TARGET` 后重启前端。使用同一仓库版本的 `backend/` 和 `frontend/`，避免旧工作目录的服务与当前页面契约不一致。
 
