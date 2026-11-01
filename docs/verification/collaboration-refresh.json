@@ -1,0 +1,221 @@
+{
+  "date": "2026-11-01",
+  "base_commit": "068c55cf704d5f7ccefcb6fff0e6917329d64d3f",
+  "full_acceptance": {
+    "started_at": "2026-11-01T06:02:09.108982+00:00",
+    "finished_at": "2026-11-01T06:05:56.381963+00:00",
+    "environment": {
+      "python": "3.12.16",
+      "node": "v24.18.0",
+      "npm": "11.16.0",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "commit": "759355b243078565f380c10d6fc387e57121431c",
+      "dirty": false,
+      "lockfiles_sha256": {
+        "backend/uv.lock": "f904e0326b3c8445863bc521910bad114392fad748c3269424a77be37f0ad6e1",
+        "frontend/package-lock.json": "08c6797400473cd6281d91720549084680ae8072128d2895b02c85f4863ae1b4"
+      }
+    },
+    "automated_status": "passed",
+    "manual_acceptance": "pending"
+  },
+  "checks": [
+    {
+      "name": "backend-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.485
+    },
+    {
+      "name": "backend-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.093
+    },
+    {
+      "name": "tooling-lint",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.094
+    },
+    {
+      "name": "tooling-format",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.094
+    },
+    {
+      "name": "migrate",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.609
+    },
+    {
+      "name": "migration-check",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 0.578
+    },
+    {
+      "name": "backend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 119.563
+    },
+    {
+      "name": "frontend-build",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 8.219
+    },
+    {
+      "name": "frontend-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 1.484
+    },
+    {
+      "name": "browser-tests",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 90.156
+    },
+    {
+      "name": "http-restart",
+      "status": "passed",
+      "exit_code": 0,
+      "duration_seconds": 5.891
+    }
+  ],
+  "backend": {
+    "tests": 345,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "coverage": {
+    "covered_lines": 1344,
+    "num_statements": 1359,
+    "percent_covered": 98.8962472406181,
+    "percent_covered_display": "99",
+    "missing_lines": 15,
+    "excluded_lines": 0,
+    "percent_statements_covered": 98.8962472406181,
+    "percent_statements_covered_display": "99"
+  },
+  "frontend": {
+    "numTotalTests": 66,
+    "numPassedTests": 66,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "browser": {
+    "startTime": "2026-11-01T06:04:20.967Z",
+    "duration": 89495.23000000001,
+    "expected": 23,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "new_browser_cases": [
+    {
+      "name": "switching tabs refreshes members, totals, settlement summary and activity status together",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "duration": 1537,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "name": "the pending receipt shortcut refreshes even when the settlement tab is already open",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "duration": 1554,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "name": "expense entry waits until refreshed members arrive before capturing split participants",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "duration": 1720,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "name": "a failed member refresh keeps expense entry disabled until a successful retry",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "duration": 1348,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "http_restart": {
+    "workflow_passed": true,
+    "restart_passed": true,
+    "python": "3.12.16"
+  },
+  "expected_failures_before_fix": [
+    {
+      "application_commit": "068c55c",
+      "uncommitted_regression_tests": true,
+      "failed": 2,
+      "details": [
+        "Member tab kept 1 member after another member joined; expected 2.",
+        "Receipt shortcut kept pending status after the payer cancelled."
+      ],
+      "artifacts": ".e2e/collaboration-before"
+    },
+    {
+      "application_commit": "0c7da28",
+      "uncommitted_regression_tests": true,
+      "failed": 2,
+      "details": [
+        "Expense entry remained enabled while member response was held.",
+        "Expense entry remained enabled after member refresh returned 503."
+      ],
+      "artifacts": ".e2e/member-readiness-before"
+    }
+  ],
+  "source_reports": {
+    "summary.json": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/summary.json",
+      "sha256": "960f7f72c3f10dcd55e839616bb186ba8a1acb0ad8c7225ddfafb10c489db4a9"
+    },
+    "backend.xml": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/backend.xml",
+      "sha256": "0500e3c7184c23c5cf49003dc97f650725f6aebefd87bbc8345e81276c359239"
+    },
+    "frontend.json": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/frontend.json",
+      "sha256": "fed904f0597e57d1c002c815b8b259874e11a5885a18c3dcce653e808c193a66"
+    },
+    "browser.json": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/browser.json",
+      "sha256": "2ed7049eb667ecbf8386840e5ac20b564d573ea85d2bf02ff42feac6cf4a9607"
+    },
+    "coverage.json": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/coverage.json",
+      "sha256": "1266cf7d9ca78550a5ada1dab090ad42bec4269410fa1fb1a6c253c5ec70c47c"
+    },
+    "restart/verification.json": {
+      "local_path": ".e2e/collaboration-acceptance-20261101/restart/verification.json",
+      "sha256": "452c3a6b29742c00a0230d239fd6c2e846616a606d142f5b8429455da7fdb9cd"
+    }
+  },
+  "scope": "Local Windows automated verification on clean commit 759355b; classroom and independent team acceptance remain pending. CI results are recorded on the pull request."
+}
