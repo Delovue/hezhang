@@ -132,7 +132,7 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
           <AuditPanel v-else-if="tab === 'history'" :activity-id="activity.id" :members="members" :refresh-token="refreshToken" />
         </div>
         <aside class="detail-rail" aria-label="结算摘要">
-          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" @review="select('settlement')" />
+          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="!loading && !error && !!currentMember" @changed="load" @review="select('settlement')" />
           <section v-if="activity.invite_code" class="rail-card invite-card"><h2>邀请伙伴</h2><p class="muted">伙伴登录后输入邀请码即可加入。</p><div class="invite-code-row"><code data-testid="invite-code">{{ activity.invite_code }}</code><el-button text :icon="CopyDocument" @click="copyInvite">复制</el-button></div></section>
         </aside>
       </div>
