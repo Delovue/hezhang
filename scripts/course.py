@@ -16,7 +16,7 @@ import sys
 import time
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import ProxyHandler, build_opener
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,12 +160,14 @@ def stop(process: subprocess.Popen) -> None:
 
 
 def wait_ready(url: str, process: subprocess.Popen) -> None:
+    # All callers probe our own loopback servers, independent of shell proxies.
+    local_http = build_opener(ProxyHandler({}))
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError(f"Server exited with code {process.returncode}")
         try:
-            with urlopen(url, timeout=1) as response:
+            with local_http.open(url, timeout=1) as response:
                 if response.status == 200:
                     return
         except (URLError, TimeoutError):
