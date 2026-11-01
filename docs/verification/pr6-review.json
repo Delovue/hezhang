@@ -1,0 +1,138 @@
+{
+  "date": "2026-11-01",
+  "pr": 6,
+  "full_acceptance": {
+    "started_at": "2026-11-01T05:15:03.513771+00:00",
+    "finished_at": "2026-11-01T05:18:49.845579+00:00",
+    "environment": {
+      "python": "3.12.13",
+      "node": "v22.12.0",
+      "npm": "10.9.0",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "commit": "8a5828cebe396edc4ea7cf71a69e52d416b80494",
+      "dirty": true,
+      "lockfiles_sha256": {
+        "backend/uv.lock": "f904e0326b3c8445863bc521910bad114392fad748c3269424a77be37f0ad6e1",
+        "frontend/package-lock.json": "08c6797400473cd6281d91720549084680ae8072128d2895b02c85f4863ae1b4"
+      }
+    },
+    "tested_source_committed_as": "7942825c36b6070dfbf0cbfa3d0e271c67b0109d",
+    "checks": [
+      {
+        "name": "backend-lint",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.125
+      },
+      {
+        "name": "backend-format",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.125
+      },
+      {
+        "name": "tooling-lint",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.125
+      },
+      {
+        "name": "tooling-format",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.11
+      },
+      {
+        "name": "migrate",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.89
+      },
+      {
+        "name": "migration-check",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 0.844
+      },
+      {
+        "name": "backend-tests",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 122.359
+      },
+      {
+        "name": "frontend-build",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 8.172
+      },
+      {
+        "name": "frontend-tests",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 1.344
+      },
+      {
+        "name": "browser-tests",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 84.078
+      },
+      {
+        "name": "http-restart",
+        "status": "passed",
+        "exit_code": 0,
+        "duration_seconds": 8.125
+      }
+    ],
+    "backend_passed": 345,
+    "coverage": {
+      "covered_lines": 1344,
+      "num_statements": 1359,
+      "percent_covered": 98.8962472406181,
+      "percent_covered_display": "99",
+      "missing_lines": 15,
+      "excluded_lines": 0,
+      "percent_statements_covered": 98.8962472406181,
+      "percent_statements_covered_display": "99"
+    },
+    "unit_passed": 66,
+    "unit_failed": 0,
+    "browser": {
+      "startTime": "2026-11-01T05:17:18.478Z",
+      "duration": 83221.471,
+      "expected": 19,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "http_restart": {
+      "workflow_passed": true,
+      "restart_passed": true,
+      "python": "3.12.13"
+    },
+    "report_sha256": {
+      "summary.json": "bd0fe11a02ecfbd8861f7bd0bd2dced6b3576275e96d52cef2d2acff85987fee",
+      "frontend.json": "cb9e98036de7424ab81740b2c09496d8c49d548975ed8d629fdb592a2eaaf1e3",
+      "browser.json": "da51354863653692e728cdd98f4432c25e9bda41f048007eefd943ddc94c92a7",
+      "coverage.json": "b78b279607aab7be43ebe5159623dde335cadc34a1644dc47de39a41825cc91c",
+      "backend-tests.log": "e77af2c1fc318632c59254366412e27b9f5bdaf9b235775455a831b1c2ead83a",
+      "http-restart.log": "f8baf57559eacdf0bedd29d469e4f71e40bd15eae83ec0b1c8226024b18829d9"
+    }
+  },
+  "expense_followup": {
+    "tested_source_committed_as": "436ba919c5fbbd3bb698ae6c5e90c937cf38180a",
+    "typecheck": "passed",
+    "browser": {
+      "startTime": "2026-11-01T05:19:16.689Z",
+      "duration": 18233.136,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "report_sha256": "732d96dbd8227d5d096d877753e63ff6ac1592ae8e59308cc02326ae9e0e7957"
+  },
+  "manual_acceptance": "pending",
+  "remote_ci": "See latest checks on PR #6; local results do not substitute for remote checks."
+}

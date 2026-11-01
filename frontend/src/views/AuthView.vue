@@ -49,18 +49,18 @@ async function submit() {
       <RouterLink to="/login" class="brand"><BrandMark /><span>合账<small>HEZHANG</small></span></RouterLink>
       <div class="story-body"><div class="eyebrow light"><span></span>属于你们的共同账本</div>
         <h1>一起出发，<br />把账算清楚。</h1><p class="story-description">一场旅行，一次聚餐。<br />共同的花费，一起记，轻松分。</p>
-        <div class="ledger-art" aria-hidden="true"><div class="art-label">OUR SHARED MOMENTS <span>↗</span></div>
-          <div class="art-row"><span class="art-icon">↗</span><div><strong>每一笔支出</strong><small>有人垫付，大家分担</small></div><span class="art-check">✓</span></div>
-          <div class="art-connection"></div>
-          <div class="art-row"><span class="art-icon peach">≋</span><div><strong>每一次相聚</strong><small>费用清晰，相处轻松</small></div><span class="art-check">✓</span></div>
-          <div class="art-rule"></div><div class="art-bottom"><span>小账本 · 大默契</span><span class="art-avatars">A <i>B</i> <i>C</i></span></div>
+        <div class="ledger-art" aria-hidden="true"><div class="art-label">三人出游 · 结算预览 <span>自动分摊</span></div>
+          <div class="art-row"><span class="art-icon">A</span><div><strong>小王</strong><small>垫付 ¥ 120.00</small></div><span class="art-check receive">应收 ¥ 50.00</span></div>
+          <div class="art-row"><span class="art-icon peach">B</span><div><strong>小李</strong><small>垫付 ¥ 60.00</small></div><span class="art-check pay">应付 ¥ 10.00</span></div>
+          <div class="art-row"><span class="art-icon mint">C</span><div><strong>小陈</strong><small>垫付 ¥ 0.00</small></div><span class="art-check pay">应付 ¥ 40.00</span></div>
+          <div class="art-rule"></div><div class="art-bottom"><span>转账建议</span><strong>2 笔即可结清</strong></div>
         </div>
       </div>
       <p class="story-footer">共同记录 <span>·</span> 清晰分摊 <span>·</span> 安心结算</p>
     </section>
     <main class="auth-main"><div class="auth-top-note">{{ register ? '已有合账账号？' : '第一次使用合账？' }}
       <RouterLink :to="{ path: register ? '/login' : '/register', query: route.query }">{{ register ? '去登录' : '创建账号' }} <span aria-hidden="true">↗</span></RouterLink></div>
-      <div class="auth-form-wrap"><span class="eyebrow">LET’S GET TOGETHER</span><h2>{{ register ? '开启你们的共同账本' : '欢迎回来' }}</h2><p class="muted auth-subtitle">{{ register ? '创建账号，让每一笔共同花费都有记录。' : '登录合账，继续记录下一段美好时光。' }}</p>
+      <div class="auth-form-wrap"><span class="eyebrow">合账 · 小组协作记账</span><h2>{{ register ? '开启你们的共同账本' : '欢迎回来' }}</h2><p class="muted auth-subtitle">{{ register ? '创建账号，让每一笔共同花费都有记录。' : '登录合账，继续记录下一段美好时光。' }}</p>
         <form class="stack-form" @submit.prevent="submit">
           <el-alert v-if="notice" :title="notice" type="info" :closable="false" />
           <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon role="alert" />
