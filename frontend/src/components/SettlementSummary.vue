@@ -8,10 +8,11 @@ import { formatCents, signedCents } from '../utils/money'
 import { avatarTone, initial } from '../utils/members'
 import PaymentDialog from './PaymentDialog.vue'
 
-const props = defineProps<{ activity: Activity; members: Member[]; userId: number; refreshToken: number }>()
+const props = defineProps<{ activity: Activity; members: Member[]; userId: number; refreshToken: number; ready: boolean }>()
 const emit = defineEmits<{ changed: []; review: [] }>()
 const balances = ref<Balance[]>([]), suggestions = ref<Transfer[]>([])
 const busy = ref(false), error = ref(''), dialog = ref(false), suggestion = ref<Transfer>()
+const paymentReady = computed(() => props.ready && !busy.value && !error.value)
 const currentMember = computed(() => props.members.find(row => row.user_id === props.userId)?.id)
 const own = computed(() => balances.value.find(row => row.member_id === currentMember.value))
 const toPay = computed(() => suggestions.value.filter(row => row.payer_member_id === currentMember.value))
@@ -34,9 +35,9 @@ async function load() {
   } catch (cause) { if (!isCancelled(cause)) error.value = errorMessage(cause) }
   finally { if (controller === current) busy.value = false }
 }
-function register(transfer?: Transfer) { suggestion.value = transfer; dialog.value = true }
+function register(transfer?: Transfer) { if (paymentReady.value) { suggestion.value = transfer; dialog.value = true } }
 function saved() { ElMessage.success('付款已登记，等待收款人确认'); emit('changed') }
-watch(() => [props.activity.id, props.activity.status, props.refreshToken], () => void load(), { immediate: true })
+watch([() => props.activity.id, () => props.activity.status, () => props.refreshToken], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 
@@ -49,7 +50,7 @@ onBeforeUnmount(() => controller?.abort())
       <p v-else-if="own.balance_cents < 0" class="own-sentence">应付 <span class="money">¥ {{ formatCents(-own.balance_cents) }}</span>，已全部登记。</p>
       <p v-else-if="own.balance_cents > 0" class="own-sentence">还应收回 <span class="money">¥ {{ formatCents(own.balance_cents) }}</span><template v-if="toReceive.length">，来自{{ toReceive.map(row => name(row.payer_member_id)).join('、') }}</template>。</p>
       <p v-else class="own-sentence">你已平账，无需付款。</p>
-      <el-button v-if="activity.status === 'SETTLING' && own.available_out_cents > 0" type="primary" @click="register()">登记已付款</el-button>
+      <el-button v-if="activity.status === 'SETTLING' && own.available_out_cents > 0" type="primary" :disabled="!paymentReady" @click="register()">登记已付款</el-button>
       <p v-if="activity.status === 'ACTIVE' && own.balance_cents !== 0" class="own-note">当前为预估金额，封账后即可登记付款。</p>
       <p v-if="own.pending_out_cents > 0" class="own-note">已登记付款 ¥ {{ formatCents(own.pending_out_cents) }}，等待对方确认。</p>
       <p v-if="own.pending_in_cents > 0" class="own-note">有 ¥ {{ formatCents(own.pending_in_cents) }} 付款等待你确认收款。<button type="button" class="inline-link" @click="emit('review')">去处理</button></p>
@@ -70,10 +71,10 @@ onBeforeUnmount(() => controller?.abort())
         <span class="avatar mini" :class="avatarTone(row.payer_member_id)" :title="name(row.payer_member_id)" aria-hidden="true">{{ initial(name(row.payer_member_id)) }}</span>
         <span class="suggestion-text">{{ name(row.payer_member_id) }} <span class="suggestion-arrow" aria-label="付给">→</span> {{ name(row.payee_member_id) }}</span>
         <strong class="money">¥ {{ formatCents(row.amount_cents) }}</strong>
-        <el-button v-if="activity.status === 'SETTLING' && row.payer_member_id === currentMember" size="small" :aria-label="`按此建议登记：付给${name(row.payee_member_id)} ¥ ${formatCents(row.amount_cents)}`" @click="register(row)">登记</el-button>
+        <el-button v-if="activity.status === 'SETTLING' && row.payer_member_id === currentMember" size="small" :disabled="!paymentReady" :aria-label="`按此建议登记：付给${name(row.payee_member_id)} ¥ ${formatCents(row.amount_cents)}`" @click="register(row)">登记</el-button>
       </div>
       <p v-if="!busy && !suggestions.length" class="muted">{{ hasPending ? '暂无可登记的转账，仍有付款等待确认。' : '暂无需要的转账。' }}</p>
     </section>
-    <PaymentDialog v-model="dialog" :activity="activity" :balances="balances" :members="members" :member-id="currentMember" :suggestion="suggestion" @saved="saved" @refresh="emit('changed')" />
+    <PaymentDialog v-model="dialog" :activity="activity" :balances="balances" :members="members" :member-id="currentMember" :suggestion="suggestion" :ready="paymentReady" @saved="saved" @refresh="emit('changed')" />
   </div>
 </template>
