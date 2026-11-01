@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-01",
+  "failed_run": "https://github.com/Delovue/hezhang/actions/runs/41272977245",
+  "failed_artifact_id": 13070347131,
+  "failed_windows_browser": {
+    "passed": 10,
+    "failed": 7
+  },
+  "observed_authentication_ms": {
+    "register_201": 2504.514,
+    "login_200": 5860.949,
+    "me_200": 82.349
+  },
+  "root_causes": [
+    "5 second UI navigation assertion expired while successful authentication requests were still running",
+    "Expense form captured the old member list before the asynchronous refresh completed"
+  ],
+  "fixes": [
+    "Await and validate real authentication responses before asserting UI navigation",
+    "Await activity/member/statistics responses and Vue loading completion before subsequent operations",
+    "Give the three-account full workflow a 120 second total budget; keep 5 second UI assertions and zero retries"
+  ],
+  "targeted_tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "full_browser": {
+    "startTime": "2026-11-01T04:41:55.710Z",
+    "duration": 79414.646,
+    "expected": 19,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "typecheck": "passed",
+  "build": "passed",
+  "manual_acceptance": "pending",
+  "raw_report_sha256": "fc9adc2a264fa167be85503c25f4ebf5722007f35f442aea78d11b511620fe74",
+  "source_sha256": {
+    "frontend/e2e/helpers.ts": "e347994688b1a45380568a0df0d9c3600c152f9abca7ae4e33bb0ab8ffa4ccc2",
+    "frontend/e2e/activities.spec.ts": "2ede639b46c0c4e37ec996cb6660156ed10d5e1f979031b47e56f47b9811cadf",
+    "frontend/e2e/expenses.spec.ts": "b938f9f61b31f93e4d497fa55747b99769f69d0dc3ba9a738b24fd33ea6412d1",
+    "frontend/e2e/settlement.spec.ts": "0bb1d5727b809ce773865b2b6937f1bc46b32d61490012b4f9df1807fc8b6fde",
+    "frontend/e2e/synchronization.spec.ts": "b4d59cf8cf8a7b40dcb308cae13fadd09742d1bc59c02a7112b0ac557bea940d"
+  }
+}

@@ -1,21 +1,29 @@
 name: Frontend checks
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
-    paths: ['frontend/**', 'backend/**', 'scripts/frontend_e2e_server.py', '.github/workflows/frontend.yml']
+    paths: ['frontend/**', 'backend/**', 'scripts/**', 'docs/**', 'README.md', '.github/workflows/frontend.yml']
   push:
-    branches: [main, feat/frontend, feat/frontend-completion]
-    paths: ['frontend/**', 'backend/**', 'scripts/frontend_e2e_server.py', '.github/workflows/frontend.yml']
+    branches: [main, feat/frontend, feat/frontend-completion, 'test/**']
+    paths: ['frontend/**', 'backend/**', 'scripts/**', 'docs/**', 'README.md', '.github/workflows/frontend.yml']
 permissions:
   contents: read
 jobs:
   frontend:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+      PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/.e2e/browser-tests.json
+      PYTHONUTF8: '1'
     defaults:
       run:
+        shell: bash
         working-directory: frontend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -31,7 +39,7 @@ jobs:
       - name: Typecheck and build
         run: npm run build
       - name: Unit tests
-        run: npm test
+        run: npm test -- --reporter=default --reporter=json --outputFile=../.e2e/frontend-unit.json
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
@@ -43,4 +51,16 @@ jobs:
       - name: Install Chromium
         run: npm run test:install-browser -- --with-deps
       - name: Browser tests with isolated real backend
-        run: npm run test:e2e
+        run: npm run test:e2e -- --reporter=list,json --output=../.e2e/browser-artifacts
+      - name: Retain frontend evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-evidence-${{ matrix.os }}-${{ github.sha }}
+          retention-days: 14
+          include-hidden-files: true
+          if-no-files-found: warn
+          path: |
+            .e2e/frontend-unit.json
+            .e2e/browser-tests.json
+            .e2e/browser-artifacts/
