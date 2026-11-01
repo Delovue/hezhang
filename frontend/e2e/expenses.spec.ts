@@ -8,6 +8,9 @@ test('three split modes, partial participants, edit permission, filtering and de
   try {
     const guest = await guestContext.newPage(); await register(guest, '小李'); await join(guest, code)
     await page.getByRole('button', { name: '刷新', exact: true }).click()
+    // Clicking refresh starts an async load; wait for the new membership before
+    // opening a form whose default participants are captured when it opens.
+    await expect(page.getByRole('button', { name: /活动成员/ })).toContainText('2')
     let dialog = await expenseForm(page, '均摊一元', '1.01')
     await dialog.getByRole('button', { name: '预览分摊' }).click()
     await expect(dialog.locator('.preview-box')).toContainText('小王：¥ 0.51')
