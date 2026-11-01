@@ -205,3 +205,22 @@ test('payment entry stays disabled after a failed balance refresh and recovers o
   expect(payments).toHaveLength(2)
   expect(payments.filter(row => row.status === 'PENDING').map(row => row.amount_cents)).toEqual([500])
 })
+
+test('switching to another tab loads its list once while the summary still refreshes', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  await addExpense(request, activity, activity.guestId)
+  await page.getByRole('button', { name: '结算与付款', exact: true }).click()
+  await expect(page.getByTestId('total-spent')).toHaveText('¥ 10.00')
+  const lists: string[] = [], balances: string[] = []
+  page.on('request', item => {
+    if (item.method() !== 'GET') return
+    const path = new URL(item.url()).pathname
+    if (path.endsWith(`/activities/${activity.id}/expenses`)) lists.push(path)
+    if (path.endsWith(`/activities/${activity.id}/balances`)) balances.push(path)
+  })
+  await page.getByRole('button', { name: '费用明细', exact: true }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(1)
+  await expect.poll(() => balances.length).toBe(1)
+  await page.waitForLoadState('networkidle')
+  expect(lists).toHaveLength(1)
+})
