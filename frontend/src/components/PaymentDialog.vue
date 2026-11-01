@@ -5,7 +5,7 @@ import { ApiError, errorMessage, isCancelled } from '../api/client'
 import type { Activity, Balance, Member, PaymentCreate, Transfer } from '../api/types'
 import { centsToInput, formatCents, parseYuan } from '../utils/money'
 
-const props = defineProps<{ modelValue: boolean; activity: Activity; balances: Balance[]; members: Member[]; memberId?: number; suggestion?: Transfer }>()
+const props = defineProps<{ modelValue: boolean; activity: Activity; balances: Balance[]; members: Member[]; memberId?: number; suggestion?: Transfer; ready: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [boolean]; saved: []; refresh: [] }>()
 const payee = ref(0), amount = ref(''), busy = ref(false), error = ref(''), pending = ref<PaymentCreate | null>(null)
 const own = computed(() => props.balances.find(row => row.member_id === props.memberId))
@@ -17,7 +17,7 @@ watch(() => props.modelValue, open => {
   pending.value = null; error.value = ''
 })
 async function submit() {
-  if (busy.value || props.activity.status !== 'SETTLING') return
+  if (busy.value || !props.ready || props.activity.status !== 'SETTLING') return
   error.value = ''
   try {
     if (!pending.value) {
@@ -47,12 +47,13 @@ function close() { if (!busy.value) { emit('update:modelValue', false); emit('re
       <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
       <p v-if="pending" class="notice-box">上次提交结果尚待确认。重试使用同一请求编号和原金额，不会重复登记。</p>
       <p v-if="activity.status !== 'SETTLING'" role="alert">活动当前不接受新的付款登记。</p>
-      <fieldset class="ledger-fieldset" :disabled="busy || !!pending || activity.status !== 'SETTLING'">
+      <p v-else-if="!ready" role="status">请等待付款额度更新完成；若加载失败，请关闭弹窗并刷新重试。</p>
+      <fieldset class="ledger-fieldset" :disabled="busy || !ready || !!pending || activity.status !== 'SETTLING'">
         <label class="form-field">收款人<select v-model="payee" aria-label="收款人"><option v-for="row in receivers" :key="row.member_id" :value="row.member_id">{{ members.find(m => m.id === row.member_id)?.display_name }} · 可收 ¥ {{ formatCents(row.available_in_cents) }}</option></select></label>
         <label class="form-field payment-amount">付款金额（元）<input v-model="amount" inputmode="decimal" required /></label>
       </fieldset>
       <p class="field-help">我还可登记付出 ¥ {{ formatCents(own?.available_out_cents || 0) }}。可填写部分金额。</p>
-      <div class="dialog-actions"><el-button :disabled="busy" @click="close">{{ pending ? '关闭并核对记录' : '取消' }}</el-button><el-button type="primary" native-type="submit" :loading="busy" :disabled="activity.status !== 'SETTLING'">{{ pending ? '重试原付款' : '提交付款登记' }}</el-button></div>
+      <div class="dialog-actions"><el-button :disabled="busy" @click="close">{{ pending ? '关闭并核对记录' : '取消' }}</el-button><el-button type="primary" native-type="submit" :loading="busy" :disabled="!ready || activity.status !== 'SETTLING'">{{ pending ? '重试原付款' : '提交付款登记' }}</el-button></div>
     </form>
   </el-dialog>
 </template>

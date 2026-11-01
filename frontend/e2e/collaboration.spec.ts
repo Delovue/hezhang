@@ -127,3 +127,55 @@ test('a failed member refresh keeps expense entry disabled until a successful re
   await add.click()
   await expect(page.getByRole('dialog', { name: '新增费用' }).getByLabel('参与分摊：小李', { exact: true })).toBeChecked()
 })
+
+for (const failure of ['delayed', 'failed'] as const) {
+  test(`payment entry waits for ${failure} balance refresh after a rejected payment`, async ({ page, request }) => {
+    const activity = await sharedActivity(page, request)
+    await addExpense(request, activity, activity.guestId)
+    expect((await request.post(`${api}/activities/${activity.id}/start-settlement`, { headers: activity.ownerAuth })).ok()).toBeTruthy()
+    const response = await request.post(`${api}/activities/${activity.id}/payments`, {
+      headers: activity.ownerAuth, data: { payee_member_id: activity.guestId, amount_cents: 200, request_id: randomUUID() },
+    })
+    expect(response.status()).toBe(201)
+    const payment = await response.json()
+    await refreshActivity(page)
+    await expect(page.locator('.own-card')).toContainText('已登记付款 ¥ 2.00')
+    expect((await request.post(`${api}/activities/${activity.id}/payments/${payment.id}/reject`, { headers: activity.guestAuth })).ok()).toBeTruthy()
+
+    let release!: () => void, received!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const requested = new Promise<void>(resolve => { received = resolve })
+    const balanceUrl = `**/api/v1/activities/${activity.id}/balances`
+    await page.route(balanceUrl, async route => {
+      if (failure === 'failed') {
+        received()
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: '余额加载暂时失败' }) })
+      } else {
+        const fresh = await route.fetch()
+        received()
+        await gate
+        await route.fulfill({ response: fresh })
+      }
+    })
+    const enter = page.getByRole('button', { name: '登记已付款', exact: true })
+    try {
+      await Promise.all([requested, refreshActivity(page)])
+      if (failure === 'failed') await expect(page.locator('.settlement-summary').getByRole('alert')).toContainText('余额加载暂时失败')
+      await expect(enter).toBeDisabled()
+      await expect(page.getByRole('button', { name: /按此建议登记/ })).toBeDisabled()
+    } finally { release() }
+    if (failure === 'failed') { await page.unroute(balanceUrl); await refreshActivity(page) }
+    await expect(enter).toBeEnabled()
+    await enter.click()
+    const dialog = page.getByRole('dialog', { name: '登记已付款' })
+    await expect(dialog).toContainText('我还可登记付出 ¥ 5.00')
+    await dialog.getByLabel('付款金额（元）').fill('5')
+    await dialog.getByRole('button', { name: '提交付款登记' }).click()
+    await expect(dialog).not.toBeVisible()
+    const paymentsResponse = await request.get(`${api}/activities/${activity.id}/payments`, { headers: activity.ownerAuth })
+    expect(paymentsResponse.ok()).toBeTruthy()
+    const payments: { status: string; amount_cents: number }[] = await paymentsResponse.json()
+    expect(payments).toHaveLength(2)
+    expect(payments.filter(row => row.status === 'PENDING').map(row => row.amount_cents)).toEqual([500])
+  })
+}
