@@ -1,7 +1,7 @@
 {
   "release": "v1.0.0",
   "acceptance_owner": "role_d",
-  "execution": "Codex on local Windows",
+  "execution": "role D on local Windows",
   "scope": "local_preclass",
   "local_acceptance": "passed",
   "classroom_demo": "pending",
@@ -179,7 +179,7 @@
   "visual_review": {
     "settlement_desktop": "passed",
     "settlement_mobile_390px": "passed",
-    "performed_by": "Codex visual inspection; not classroom projection"
+    "performed_by": "role D visual inspection; not classroom projection"
   },
   "report_sha256": {
     "summary.json": "40fb31941f76ef470f311ef8f84b2323eff32d0bdf6d2451b000012600739e31",
