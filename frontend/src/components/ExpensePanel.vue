@@ -44,7 +44,6 @@ async function load(append = false) {
 function editable(row: Expense) { return props.activity.status === 'ACTIVE' && [props.activity.owner_id, row.created_by_id].includes(props.userId) }
 function edit(row?: Expense) { if (props.ready) { editing.value = row; dialog.value = true } }
 async function remove(row: Expense) {
-  if (!props.ready) return
   try { await ElMessageBox.confirm(`删除“${row.title}”（¥ ${formatCents(row.amount_cents)}）？操作历史会保留。`, '删除费用', { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' }) }
   catch { return }
   deleting.value = row.id; actionError.value = ''
@@ -91,7 +90,7 @@ onBeforeUnmount(() => controller?.abort())
         <p v-if="row.notes" class="entry-notes">{{ row.notes }}</p>
         <div class="expense-foot">
           <details><summary>分摊明细</summary><div class="share-list"><span v-for="share in row.shares" :key="share.member_id">{{ members.find(m => m.id === share.member_id)?.display_name }} ¥ {{ formatCents(share.amount_cents) }}{{ share.shares ? `（${share.shares} 份）` : '' }}</span></div></details>
-          <div v-if="editable(row)" class="entry-actions"><el-button text size="small" :disabled="!ready || !!deleting" @click="edit(row)">编辑费用</el-button><el-button text size="small" type="danger" :loading="deleting === row.id" :disabled="!ready || !!deleting" @click="remove(row)">删除费用</el-button></div>
+          <div v-if="editable(row)" class="entry-actions"><el-button text size="small" :disabled="!ready || !!deleting" @click="edit(row)">编辑费用</el-button><el-button text size="small" type="danger" :loading="deleting === row.id" :disabled="!!deleting" @click="remove(row)">删除费用</el-button></div>
         </div>
       </article>
     </div>
