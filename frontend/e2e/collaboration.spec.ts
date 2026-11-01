@@ -168,3 +168,59 @@ test('payment entry waits for refreshed balances after a pending payment is reje
   expect(saved.status()).toBe(201)
   await expect(dialog).not.toBeVisible()
 })
+
+test('payment entry stays disabled after a failed balance refresh and recovers on retry', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  await addExpense(request, activity, activity.guestId)
+  expect((await request.post(`${api}/activities/${activity.id}/start-settlement`, { headers: activity.ownerAuth })).ok()).toBeTruthy()
+  const response = await request.post(`${api}/activities/${activity.id}/payments`, {
+    headers: activity.ownerAuth, data: { payee_member_id: activity.guestId, amount_cents: 200, request_id: randomUUID() },
+  })
+  expect(response.status()).toBe(201)
+  const payment = await response.json()
+  await refreshActivity(page)
+  await expect(page.locator('.own-card')).toContainText('已登记付款 ¥ 2.00')
+  expect((await request.post(`${api}/activities/${activity.id}/payments/${payment.id}/reject`, { headers: activity.guestAuth })).ok()).toBeTruthy()
+
+  const balanceUrl = `**/api/v1/activities/${activity.id}/balances`
+  await page.route(balanceUrl, route => route.fulfill({ status: 503, contentType: 'application/json',
+    body: JSON.stringify({ detail: '余额加载暂时失败' }) }))
+  await refreshActivity(page)
+  await expect(page.locator('.settlement-summary').getByRole('alert')).toContainText('余额加载暂时失败')
+  const enter = page.getByRole('button', { name: '登记已付款', exact: true })
+  await expect(enter).toBeDisabled()
+  await expect(page.getByRole('button', { name: /按此建议登记/ })).toBeDisabled()
+  await page.unroute(balanceUrl)
+  await refreshActivity(page)
+  await expect(enter).toBeEnabled()
+  await enter.click()
+  const dialog = page.getByRole('dialog', { name: '登记已付款' })
+  await expect(dialog).toContainText('我还可登记付出 ¥ 5.00')
+  await dialog.getByLabel('付款金额（元）').fill('5')
+  await dialog.getByRole('button', { name: '提交付款登记' }).click()
+  await expect(dialog).not.toBeVisible()
+  const paymentsResponse = await request.get(`${api}/activities/${activity.id}/payments`, { headers: activity.ownerAuth })
+  expect(paymentsResponse.ok()).toBeTruthy()
+  const payments: { status: string; amount_cents: number }[] = await paymentsResponse.json()
+  expect(payments).toHaveLength(2)
+  expect(payments.filter(row => row.status === 'PENDING').map(row => row.amount_cents)).toEqual([500])
+})
+
+test('switching to another tab loads its list once while the summary still refreshes', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  await addExpense(request, activity, activity.guestId)
+  await page.getByRole('button', { name: '结算与付款', exact: true }).click()
+  await expect(page.getByTestId('total-spent')).toHaveText('¥ 10.00')
+  const lists: string[] = [], balances: string[] = []
+  page.on('request', item => {
+    if (item.method() !== 'GET') return
+    const path = new URL(item.url()).pathname
+    if (path.endsWith(`/activities/${activity.id}/expenses`)) lists.push(path)
+    if (path.endsWith(`/activities/${activity.id}/balances`)) balances.push(path)
+  })
+  await page.getByRole('button', { name: '费用明细', exact: true }).click()
+  await expect(page.locator('.expense-card')).toHaveCount(1)
+  await expect.poll(() => balances.length).toBe(1)
+  await page.waitForLoadState('networkidle')
+  expect(lists).toHaveLength(1)
+})

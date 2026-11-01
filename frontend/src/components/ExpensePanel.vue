@@ -44,7 +44,6 @@ async function load(append = false) {
 function editable(row: Expense) { return props.activity.status === 'ACTIVE' && [props.activity.owner_id, row.created_by_id].includes(props.userId) }
 function edit(row?: Expense) { if (props.ready) { editing.value = row; dialog.value = true } }
 async function remove(row: Expense) {
-  if (!props.ready) return
   try { await ElMessageBox.confirm(`删除“${row.title}”（¥ ${formatCents(row.amount_cents)}）？操作历史会保留。`, '删除费用', { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' }) }
   catch { return }
   deleting.value = row.id; actionError.value = ''
@@ -56,7 +55,7 @@ async function remove(row: Expense) {
   finally { deleting.value = 0; void load() }
 }
 function saved() { ElMessage.success('费用已保存'); emit('changed') }
-watch(() => [props.activity.id, props.activity.status, props.refreshToken], () => void load(), { immediate: true })
+watch([() => props.activity.id, () => props.activity.status, () => props.refreshToken], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 
@@ -66,7 +65,6 @@ onBeforeUnmount(() => controller?.abort())
       <div class="panel-tools"><div class="segmented" aria-label="快速筛选账目"><button v-for="(label, key) in { all: '全部', joined: '我参与的', paid: '我垫付的' }" :key="key" type="button" :class="{ selected: scope === key }" :aria-pressed="scope === key" :disabled="!me && key !== 'all'" @click="choose(key)">{{ label }}</button></div><el-button v-if="activity.status === 'ACTIVE'" type="primary" :disabled="!ready" @click="edit()">新增费用</el-button></div>
     </div>
     <p v-if="activity.status !== 'ACTIVE'" class="notice-box">活动已封账，费用与分摊明细只读。</p>
-    <p v-else-if="!ready" class="field-help" role="status">请等待活动与成员信息加载完成。若加载失败，请点击上方“刷新”重试。</p>
     <form class="expense-search" @submit.prevent="load()">
       <label class="search-field"><span class="sr-only">费用关键词</span><input v-model="filters.q" maxlength="120" placeholder="搜索名称或备注" /></label>
       <el-button native-type="submit" :loading="busy">筛选费用</el-button>
@@ -92,7 +90,7 @@ onBeforeUnmount(() => controller?.abort())
         <p v-if="row.notes" class="entry-notes">{{ row.notes }}</p>
         <div class="expense-foot">
           <details><summary>分摊明细</summary><div class="share-list"><span v-for="share in row.shares" :key="share.member_id">{{ members.find(m => m.id === share.member_id)?.display_name }} ¥ {{ formatCents(share.amount_cents) }}{{ share.shares ? `（${share.shares} 份）` : '' }}</span></div></details>
-          <div v-if="editable(row)" class="entry-actions"><el-button text size="small" :disabled="!ready || !!deleting" @click="edit(row)">编辑费用</el-button><el-button text size="small" type="danger" :loading="deleting === row.id" :disabled="!ready || !!deleting" @click="remove(row)">删除费用</el-button></div>
+          <div v-if="editable(row)" class="entry-actions"><el-button text size="small" :disabled="!ready || !!deleting" @click="edit(row)">编辑费用</el-button><el-button text size="small" type="danger" :loading="deleting === row.id" :disabled="!!deleting" @click="remove(row)">删除费用</el-button></div>
         </div>
       </article>
     </div>

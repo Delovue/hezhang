@@ -40,7 +40,7 @@ async function change(row: Payment, action: PaymentAction) {
   catch (cause) { if (!isCancelled(cause)) { actionError.value = errorMessage(cause); emit('changed') } }
   finally { changing.value = false }
 }
-watch(() => [props.activity.id, props.activity.status, props.refreshToken, status.value], () => void load(), { immediate: true })
+watch([() => props.activity.id, () => props.activity.status, () => props.refreshToken, () => status.value], () => void load(), { immediate: true })
 onBeforeUnmount(() => controller?.abort())
 </script>
 

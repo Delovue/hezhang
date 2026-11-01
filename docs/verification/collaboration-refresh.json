@@ -217,5 +217,58 @@
       "sha256": "452c3a6b29742c00a0230d239fd6c2e846616a606d142f5b8429455da7fdb9cd"
     }
   },
-  "scope": "Local Windows automated verification on clean commit 759355b; classroom and independent team acceptance remain pending. CI results are recorded on the pull request."
+  "scope": "Local Windows automated verification on clean commit 759355b; classroom and independent team acceptance remain pending. CI results are recorded on the pull request.",
+  "payment_refresh_followup": {
+    "date": "2026-11-01",
+    "failed_ci": {
+      "head": "ae0fbeec59a942dcd1bd655a0bf11c1dbe7a5a8f",
+      "url": "https://github.com/Delovue/hezhang/actions/runs/41279569608/job/124768531048",
+      "browser": {
+        "startTime": "2026-11-01T06:13:10.004Z",
+        "duration": 179262.637,
+        "expected": 22,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "artifact_id": 13072522949,
+      "artifact_sha256": "30a68761e8e5014970607d118690d23259110297e8779ceadfdf1467f87dd945",
+      "observed_error": "Payment dialog stayed open with stale available-limit validation after rejection; browser context showed the refreshed 20.00 limit afterward."
+    },
+    "reproduction": {
+      "application_commit": "ae0fbee",
+      "uncommitted_regression_tests": true,
+      "expected_failures": 2,
+      "artifacts": ".e2e/payment-readiness-before"
+    },
+    "fix_commit": "f9f97298d6f44adcf1c6b9e6c936aff21bbfe768",
+    "teammate_commit": "d1d02485522648bc21201d66be5cc2d800622d97",
+    "integration": "Retained both histories, kept the teammate delayed-response test and the local 503 recovery test; merged application sources are identical to f9f9729. Six integrated collaboration tests and typecheck passed before the merge commit.",
+    "local_full_frontend": {
+      "commit": "f9f97298d6f44adcf1c6b9e6c936aff21bbfe768",
+      "dirty": false,
+      "build_and_typecheck": "passed",
+      "unit_passed": 66,
+      "browser": {
+        "startTime": "2026-11-01T06:22:13.483Z",
+        "duration": 95974.163,
+        "expected": 25,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "unchanged_backend_baseline": "759355b243078565f380c10d6fc387e57121431c",
+    "source_reports": {
+      "frontend.json": {
+        "local_path": ".e2e/payment-refresh-full/frontend.json",
+        "sha256": "699920e0f8a1d6cbf300d9b582865399ab6abcc5cf2f126b1e9a58f318fd0eab"
+      },
+      "browser.json": {
+        "local_path": ".e2e/payment-refresh-full/browser.json",
+        "sha256": "a3ebe7a7567d292f45e9e60b2291c3419ffe7035fde545d2a04f01038c0d0c4d"
+      }
+    },
+    "final_ci": "See the latest commit Checks on PR #8; the failed earlier run is not treated as a pass."
+  }
 }
