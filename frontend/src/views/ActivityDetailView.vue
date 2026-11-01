@@ -78,8 +78,8 @@ async function copyInvite() {
   try { await navigator.clipboard.writeText(activity.value.invite_code); ElMessage.success('邀请码已复制') }
   catch { ElMessage.info('自动复制不可用，请选中邀请码后手动复制') }
 }
-/** 再次点击当前标签时重新加载，与切换标签时获取最新数据的行为一致。 */
-function select(next: string) { if (tab.value === next) void load(); else tab.value = next }
+/** 标签内容与常驻摘要共用一次刷新通知，读取伙伴最新的成员、费用和付款变化。 */
+function select(next: string) { tab.value = next; void load() }
 function saved(updated: Activity) { activity.value = updated; ElMessage.success('活动已更新'); void load() }
 watch([() => route.params.id, () => session.authenticated], ([id, authenticated], previous) => {
   if (previous && id !== previous[0]) { activity.value = null; members.value = []; statistics.value = null; tab.value = 'expenses'; showEdit.value = false }
@@ -127,12 +127,12 @@ onBeforeUnmount(() => { controller?.abort(); requestNumber++ })
             </template>
           </div>
           <article v-else-if="tab === 'members'" class="panel"><div class="panel-heading"><div><h2>一起记账的伙伴</h2><p class="muted">共 {{ members.length }} 位成员 · 我的身份：{{ currentMember?.role === 'OWNER' ? '创建者' : '成员' }}</p></div></div><div class="member-grid"><div v-for="member in members" :key="member.id" class="member-card"><span class="avatar" :class="avatarTone(member.id)" aria-hidden="true">{{ initial(member.display_name) }}</span><div><strong>{{ member.display_name }} <small v-if="member.user_id === session.user?.id">（我）</small></strong><span class="member-role">{{ member.role === 'OWNER' ? '活动创建者' : '活动成员' }}</span></div></div></div><p v-if="activity.status !== 'ACTIVE'" class="field-help">活动已封账，成员名单已冻结。</p></article>
-          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
+          <ExpensePanel v-else-if="tab === 'expenses'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" :ready="!loading && !error && !!currentMember" @changed="load" />
           <SettlementPanel v-else-if="tab === 'settlement'" :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" />
           <AuditPanel v-else-if="tab === 'history'" :activity-id="activity.id" :members="members" :refresh-token="refreshToken" />
         </div>
         <aside class="detail-rail" aria-label="结算摘要">
-          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" @review="tab = 'settlement'" />
+          <SettlementSummary :activity="activity" :members="members" :user-id="session.user!.id" :refresh-token="refreshToken" @changed="load" @review="select('settlement')" />
           <section v-if="activity.invite_code" class="rail-card invite-card"><h2>邀请伙伴</h2><p class="muted">伙伴登录后输入邀请码即可加入。</p><div class="invite-code-row"><code data-testid="invite-code">{{ activity.invite_code }}</code><el-button text :icon="CopyDocument" @click="copyInvite">复制</el-button></div></section>
         </aside>
       </div>
