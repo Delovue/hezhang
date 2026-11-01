@@ -1,18 +1,10 @@
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { register, submitLogin } from './helpers'
 
 const password = 'Course-test-2026'
 const api = 'http://127.0.0.1:18000/api/v1'
 function username() { return `u_${randomUUID().replaceAll('-', '').slice(0, 20)}` }
-async function register(page: Page, displayName = '小王', account = username()) {
-  await page.goto('/register')
-  await page.getByLabel('用户名', { exact: true }).fill(account)
-  await page.getByLabel('显示名', { exact: true }).fill(displayName)
-  await page.getByLabel('密码', { exact: true }).fill(password)
-  await page.getByRole('button', { name: '创建账号并登录' }).click()
-  await expect(page).toHaveURL(/\/activities$/)
-  return account
-}
 async function createActivity(page: Page, name: string, budget = '') {
   await page.getByRole('button', { name: '创建活动', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: '创建新活动' })
@@ -33,7 +25,7 @@ async function login(page: Page, account: string) {
   await page.goto('/login')
   await page.getByLabel('用户名', { exact: true }).fill(account)
   await page.getByLabel('密码', { exact: true }).fill(password)
-  await page.getByRole('button', { name: '登录合账', exact: true }).click()
+  await submitLogin(page)
   await expect(page).toHaveURL(/\/activities$/)
 }
 
@@ -105,7 +97,7 @@ test('an owner edits a decimal budget and then clears it; refresh reauthenticate
   await expect(page).toHaveURL(/\/login\?redirect=/)
   await page.getByLabel('用户名', { exact: true }).fill(account)
   await page.getByLabel('密码', { exact: true }).fill(password)
-  await page.getByRole('button', { name: '登录合账', exact: true }).click()
+  await submitLogin(page)
   await expect(page).toHaveURL(detailUrl)
   await expect(page.getByRole('heading', { name: '周末聚餐' })).toBeVisible()
   expect(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length }))).toEqual({ local: 0, session: 0 })
@@ -126,7 +118,7 @@ test('a 401 preserves the editing draft and can resume with the same account', a
   const resume = page.getByRole('dialog', { name: '重新登录，继续当前操作' })
   await expect(resume).toBeVisible()
   await resume.getByLabel('密码', { exact: true }).fill(password)
-  await resume.getByRole('button', { name: '重新登录', exact: true }).click()
+  await submitLogin(page, '重新登录')
   await expect(resume).not.toBeVisible()
   await expect(dialog.getByLabel('活动名称')).toHaveValue('登录后继续保存的草稿')
   await page.unroute('**/api/v1/activities/*')
@@ -170,7 +162,9 @@ test('invalid invites and wrong passwords show errors without navigation or losi
   await page.getByRole('button', { name: '退出登录' }).click()
   await page.getByLabel('用户名', { exact: true }).fill(account)
   await page.getByLabel('密码', { exact: true }).fill('wrong-password')
+  const failedLogin = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/auth/login')
   await page.getByRole('button', { name: '登录合账', exact: true }).click()
+  expect((await failedLogin).status()).toBe(401)
   await expect(page.getByRole('alert').filter({ hasText: '用户名或密码错误' })).toBeVisible()
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByLabel('用户名', { exact: true })).toHaveValue(account)
@@ -205,7 +199,7 @@ test('non-members and invalid activity ids never expose another activity', async
   await page.goto(`/activities/${activity.id}`)
   await page.getByLabel('用户名', { exact: true }).fill(account)
   await page.getByLabel('密码', { exact: true }).fill(password)
-  await page.getByRole('button', { name: '登录合账', exact: true }).click()
+  await submitLogin(page)
   await expect(page.getByRole('heading', { name: '活动不存在', exact: true })).toBeVisible()
   await expect(page.getByText('不可访问的活动', { exact: true })).toHaveCount(0)
   await page.getByRole('link', { name: '返回活动列表' }).click()

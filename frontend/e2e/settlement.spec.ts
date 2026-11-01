@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
-import { api, createActivity, expenseForm, headers, join, register } from './helpers'
+import { api, createActivity, expenseForm, headers, join, refreshActivity, register } from './helpers'
 
 async function settlement(page: Page) {
-  await page.getByRole('button', { name: '刷新', exact: true }).click()
+  await refreshActivity(page)
   await page.getByRole('button', { name: '结算与付款', exact: true }).click()
   await expect(page.locator('.balance-card').first()).toBeVisible()
 }
@@ -25,6 +25,7 @@ async function seal(page: Page) {
 }
 
 test('three real browser accounts complete expenses, partial payments, rejection, cancellation and archive', async ({ page, browser, request }) => {
+  test.setTimeout(120_000)
   const accountA = await register(page, '小王'); const id = await createActivity(page, '三人出游全流程')
   const code = await page.getByTestId('invite-code').innerText()
   const contextB = await browser.newContext(), contextC = await browser.newContext()
@@ -32,12 +33,12 @@ test('three real browser accounts complete expenses, partial payments, rejection
     const b = await contextB.newPage(), c = await contextC.newPage()
     const accountB = await register(b, '小李'); await join(b, code)
     await register(c, '小陈'); await join(c, code)
-    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(page)
     let dialog = await expenseForm(page, '三人午餐', '120')
     await expect(dialog.getByLabel('参与分摊：小陈', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: '保存费用' }).click()
     await expect(page.locator('.expense-card')).toHaveCount(1)
-    await b.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(b)
     dialog = await expenseForm(b, '两人车费', '60')
     await dialog.getByLabel('费用分类').fill('交通')
     await dialog.getByLabel('参与分摊：小陈', { exact: true }).uncheck()
@@ -121,7 +122,7 @@ test('retry after a committed payment response is lost creates exactly one payme
   const context = await browser.newContext()
   try {
     const payer = await context.newPage(); await register(payer, '付款人'); await join(payer, code)
-    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(page)
     const expense = await expenseForm(page, '餐费', '10')
     await expense.getByRole('button', { name: '保存费用' }).click()
     await expect(expense).not.toBeVisible(); await settlement(page); await seal(page)

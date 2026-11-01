@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, createActivity, expenseForm, headers, join, register } from './helpers'
+import { api, createActivity, expenseForm, headers, join, refreshActivity, register } from './helpers'
 
 test('three split modes, partial participants, edit permission, filtering and deletion use the real API', async ({ page, browser }) => {
   await register(page, '小王'); await createActivity(page, '分摊验证')
@@ -7,7 +7,7 @@ test('three split modes, partial participants, edit permission, filtering and de
   const guestContext = await browser.newContext()
   try {
     const guest = await guestContext.newPage(); await register(guest, '小李'); await join(guest, code)
-    await page.getByRole('button', { name: '刷新', exact: true }).click()
+    await refreshActivity(page)
     // Clicking refresh starts an async load; wait for the new membership before
     // opening a form whose default participants are captured when it opens.
     await expect(page.getByRole('button', { name: /活动成员/ })).toContainText('2')
