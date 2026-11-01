@@ -1,0 +1,115 @@
+{
+  "release": "v1.0.0",
+  "purpose": "合入 PR #8 最终代码（24df689）后，在发布分支合并提交上重新执行完整本机验收；替代 preclass-v1.json 中基于 e66c6c2 的结果作为最终发布证据。",
+  "acceptance_owner": "role_d",
+  "scope": "local_preclass",
+  "classroom_demo": "pending",
+  "commit": "5f652de13033eea47ab4a75c4bd3c953e624dcca",
+  "dirty": false,
+  "started_at": "2026-11-01T08:40:40.435485+00:00",
+  "finished_at": "2026-11-01T08:48:51.335136+00:00",
+  "environment": {
+    "python": "3.12.15",
+    "node": "v24.16.0",
+    "npm": "11.13.0",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "lockfiles_sha256": {
+      "backend/uv.lock": "f4887f0b7e09e5eb4bf84ec6fa4e368fb98001ba33258de59696920716ae0202",
+      "frontend/package-lock.json": "83e1d07939913f352ebd3253398c743d830c57b6927532b0304dc58de9614e1c"
+    }
+  },
+  "automated_status": "passed",
+  "checks": [
+    {
+      "name": "backend-lint",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "backend-format",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "tooling-lint",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "tooling-format",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "migrate",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "migration-check",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "backend-tests",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "frontend-build",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "frontend-tests",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "browser-tests",
+      "status": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "http-restart",
+      "status": "passed",
+      "exit_code": 0
+    }
+  ],
+  "backend": {
+    "tests": 345,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "coverage": {
+    "covered_statements": 1344,
+    "statements": 1359,
+    "percent": 98.9
+  },
+  "unit": {
+    "tests": 66,
+    "failed": 0
+  },
+  "browser": {
+    "expected": 26,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0
+  },
+  "http_checks": {
+    "total": 18,
+    "failed": 0
+  },
+  "restart_checks": {
+    "total": 3,
+    "failed": 0
+  },
+  "report_sha256": {
+    "summary.json": "f1f5a2247fe8c95de7c114e8e323454c7ff52aebc8f67604d34956a4f6cfba3e",
+    "backend.xml": "6395b4c00fd2ab363f16a6551f51e93d4a6f59e8575f6457b7b61e452ad14ffa",
+    "coverage.json": "5a0d9ac73e41843cec82548d2301cf89d984b635d935cb36532a5a5e344f4609",
+    "frontend.json": "095c74635c1cf70b99b985fbca3b432c3738d7f65534fc31b0feb46bec0b1f3c",
+    "browser.json": "22e27d8ccbc77427aefc40fb100ca0d54d58314d06d492a35d3db440f039ff60"
+  }
+}
