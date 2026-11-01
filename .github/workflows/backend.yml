@@ -1,22 +1,28 @@
 name: Backend checks
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
-    paths: ["backend/**", "scripts/**", ".github/workflows/backend.yml"]
+    paths: ["backend/**", "scripts/**", "docs/**", "README.md", ".github/workflows/backend.yml"]
   push:
-    branches: [main]
-    paths: ["backend/**", "scripts/**", ".github/workflows/backend.yml"]
+    branches: [main, "test/**"]
+    paths: ["backend/**", "scripts/**", "docs/**", "README.md", ".github/workflows/backend.yml"]
 permissions:
   contents: read
 jobs:
   backend:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
     env:
       HEZHANG_DATABASE_URL: sqlite:///./data/ci.db
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,13 +38,24 @@ jobs:
         run: |
           uv run --locked ruff check app tests migrations
           uv run --locked ruff format --check app tests migrations
-          uv run --locked ruff check --config pyproject.toml ../scripts/course.py
-          uv run --locked ruff format --check --config pyproject.toml ../scripts/course.py
+          uv run --locked ruff check --config pyproject.toml ../scripts/course.py ../scripts/acceptance.py
+          uv run --locked ruff format --check --config pyproject.toml ../scripts/course.py ../scripts/acceptance.py
       - name: Check database migrations
         run: |
           uv run --locked alembic upgrade head
           uv run --locked alembic check
       - name: Run backend tests
-        run: uv run --locked pytest -q --cov=app --cov-report=term-missing --junitxml=../.e2e/backend-tests.xml
+        run: uv run --locked pytest -q --cov=app --cov-report=term-missing --cov-report=json:../.e2e/backend-coverage.json --junitxml=../.e2e/backend-tests.xml
       - name: Verify real HTTP workflow and persistence after restart
         run: uv run --locked python ../scripts/course.py verify --directory ../.e2e/ci-course
+      - name: Retain backend evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-evidence-${{ matrix.os }}-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            .e2e/backend-tests.xml
+            .e2e/backend-coverage.json
+            .e2e/ci-course/verification.json
