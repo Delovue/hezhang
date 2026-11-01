@@ -44,7 +44,6 @@ onBeforeUnmount(() => controller?.abort())
 <template>
   <div class="settlement-summary">
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
-    <p v-if="!paymentReady" class="muted" role="status">结算信息尚未就绪，请等待加载完成；加载失败后可点击上方“刷新”。</p>
     <section v-if="own" class="rail-card own-card" :class="tone">
       <h2>你的账</h2>
       <p v-if="own.balance_cents < 0 && toPay.length" class="own-sentence">还需<template v-for="(row, index) in toPay" :key="row.payee_member_id">{{ index ? '，' : '' }}付给{{ name(row.payee_member_id) }} <span class="money">¥ {{ formatCents(row.amount_cents) }}</span></template>。</p>

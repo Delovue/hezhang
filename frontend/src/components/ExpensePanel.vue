@@ -66,7 +66,6 @@ onBeforeUnmount(() => controller?.abort())
       <div class="panel-tools"><div class="segmented" aria-label="快速筛选账目"><button v-for="(label, key) in { all: '全部', joined: '我参与的', paid: '我垫付的' }" :key="key" type="button" :class="{ selected: scope === key }" :aria-pressed="scope === key" :disabled="!me && key !== 'all'" @click="choose(key)">{{ label }}</button></div><el-button v-if="activity.status === 'ACTIVE'" type="primary" :disabled="!ready" @click="edit()">新增费用</el-button></div>
     </div>
     <p v-if="activity.status !== 'ACTIVE'" class="notice-box">活动已封账，费用与分摊明细只读。</p>
-    <p v-else-if="!ready" class="field-help" role="status">请等待活动与成员信息加载完成。若加载失败，请点击上方“刷新”重试。</p>
     <form class="expense-search" @submit.prevent="load()">
       <label class="search-field"><span class="sr-only">费用关键词</span><input v-model="filters.q" maxlength="120" placeholder="搜索名称或备注" /></label>
       <el-button native-type="submit" :loading="busy">筛选费用</el-button>
