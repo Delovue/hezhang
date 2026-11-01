@@ -1,7 +1,8 @@
 """Run the course's automated acceptance checks and retain versioned evidence.
 
 Install locked backend/frontend dependencies and Chromium first. Run with the
-backend virtualenv's Python; --directory must be new. Human acceptance stays pending.
+backend virtualenv's Python; --directory must be new. Role D owns local acceptance;
+classroom demonstration is recorded separately and is not run by this command.
 """
 
 import argparse
@@ -199,11 +200,13 @@ def run_suite(directory: Path, checks: list[dict], metadata: dict, timeout: floa
         "NO_COLOR": "1",
     }
     report = {
-        "format_version": 1,
+        "format_version": 2,
         "started_at": timestamp(),
         "environment": metadata,
         "automated_status": "running",
-        "manual_acceptance": "pending",
+        "acceptance_owner": "role_d",
+        "acceptance_scope": "local_preclass",
+        "classroom_demo": "pending",
         "checks": [{**step, "status": "not_run"} for step in checks],
     }
 
@@ -245,7 +248,7 @@ def main() -> int:
         report = run_suite(directory, steps(ROOT, directory), metadata)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"{error}\n")
-    print(f"Automated acceptance: {report['automated_status']}; manual acceptance: pending")
+    print(f"Role D automated acceptance: {report['automated_status']}; classroom demo: pending")
     print(f"Evidence: {directory / 'summary.json'}")
     return 0 if report["automated_status"] == "passed" else 1
 

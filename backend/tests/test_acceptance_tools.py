@@ -1,4 +1,4 @@
-"""Evidence must distinguish success, failure, incomplete runs and human acceptance."""
+"""Role D's local evidence must not claim that classroom demonstration occurred."""
 
 import importlib
 import json
@@ -18,12 +18,16 @@ def command(tmp_path, name, code):
     return {"name": name, "command": [sys.executable, "-c", code], "cwd": str(tmp_path)}
 
 
-def test_success_records_logs_and_keeps_human_acceptance_pending(acceptance, tmp_path):
+def test_success_records_role_d_scope_and_keeps_classroom_demo_pending(acceptance, tmp_path):
     target = tmp_path / "evidence with spaces"
     checks = [command(tmp_path, "success", "print('中文 evidence')")]
     report = acceptance.run_suite(target, checks, {"commit": "test-sha", "dirty": True})
     assert report["automated_status"] == "passed"
-    assert report["manual_acceptance"] == "pending"
+    assert report["format_version"] == 2
+    assert report["acceptance_owner"] == "role_d"
+    assert report["acceptance_scope"] == "local_preclass"
+    assert report["classroom_demo"] == "pending"
+    assert "manual_acceptance" not in report
     assert report["environment"] == {"commit": "test-sha", "dirty": True}
     assert report["checks"][0]["exit_code"] == 0
     assert (target / "success.log").read_text(encoding="utf-8").strip() == "中文 evidence"
