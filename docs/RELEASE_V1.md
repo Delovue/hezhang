@@ -10,13 +10,13 @@ T01–T19 的金额、权限、事务、统计及持久化要求不变；T20 改
 
 ## 本机验收记录
 
-验收负责人：角色丁。设备：当前 Windows 本机。受验代码：`4e829dd`，采用独立干净工作树重新安装 Python 与 npm 锁定依赖；Chromium 使用本机已安装缓存。测试结果和环境精确值见 [preclass-v1.json](verification/preclass-v1.json)。后续提交仅补齐说明与交付证据；最终发布提交还需通过 Windows／Ubuntu CI。
+验收负责人：角色丁。设备：当前 Windows 本机。最终受验代码：`e66c6c2`，包含 PR #8 的协作刷新与付款入口修复。先在 `4e829dd` 的独立干净目录重新安装 Python 与 npm 锁定依赖，随后在同一干净工作树切换到最终代码重跑完整验收；锁文件未变化，Chromium 使用本机已安装缓存。测试结果和环境精确值见 [preclass-v1.json](verification/preclass-v1.json)。后续提交仅补齐说明与交付证据；最终发布提交还需通过 Windows／Ubuntu CI。
 
-本机完整验收 11 阶段全部通过：后端 345 项、前端单元 66 项、Chromium 浏览器 19 项，无失败、跳过或 flaky；Ruff、类型检查、构建、迁移检查、18 项 HTTP 流程与 3 项重启检查通过。app 语句覆盖率 1344/1359（98.90%）。另实际执行 prepare + serve，验证默认演示端口、前端页面、OpenAPI 1.0.0、三个演示账号经前端代理登录、三人成员和空账本；检查后已停止本次启动的服务。
+本机完整验收 11 阶段全部通过：后端 345 项、前端单元 66 项、Chromium 浏览器 24 项，无失败、跳过或 flaky；Ruff、类型检查、构建、迁移检查、18 项 HTTP 流程与 3 项重启检查通过。app 语句覆盖率 1344/1359（98.90%）。另实际执行 prepare + serve，验证默认演示端口、前端页面、OpenAPI 1.0.0、三个演示账号经前端代理登录、三人成员和空账本；检查后已停止本次启动的服务。
 
 已复核 1280px 桌面和 390px 手机结算截图，报告四张截图均来自本次运行；需求到代码索引同步至 ActivityProgress 和 SettlementSummary。依赖安装期间 npm audit 报告 0 漏洞；pytest 有一条上游 Starlette／HTTPX 弃用提示，不影响本轮通过，也不等同于完整安全审计。
 
-发布前复核：当前 FR01–FR12 已实现；PR #6 和 #7 已合并关闭；GitHub 无遗留开放 PR／Issue。开发期模块报告与 JSON 保留历史结果，不将其当成当前缺口，也不补造历史任务。验收输出格式 2 使用 `acceptance_owner=role_d`、`acceptance_scope=local_preclass`，自动化结果与 `classroom_demo=pending` 分开；旧格式 `manual_acceptance` 只表示旧验收规则下的历史状态。
+发布前复核：当前 FR01–FR12 已实现；PR #6 和 #7 已合并关闭；初次检查没有开放项，收尾期间发现新增 PR #8 并将其纳入发布 PR #9；两个 PR 的最终合并记录以 GitHub 时间线为准，没有遗留开放 Issue。开发期模块报告与 JSON 保留历史结果，不将其当成当前缺口，也不补造历史任务。验收输出格式 2 使用 `acceptance_owner=role_d`、`acceptance_scope=local_preclass`，自动化结果与 `classroom_demo=pending` 分开；旧格式 `manual_acceptance` 只表示旧验收规则下的历史状态。
 
 
 ### 本轮 T01–T20 结果
@@ -58,3 +58,8 @@ T01–T19 的金额、权限、事务、统计及持久化要求不变；T20 改
 - 用户已说明真实姓名／GitHub 岗位映射、教师账号和提交方式仅在课堂提交时提供。仓库目前私有；已核对现有协作者为 Aestas16、YalRinshow、Delovue、Salty-JellY，不猜测姓名或岗位对应。当前账号具有 push 权限、没有 admin 权限；课堂提交时由仓库所有者按实际方式处理教师访问。
 
 上述事项均属于课堂演示与提交阶段，不阻塞本次 `v1.0.0` 软件发布；也不声明课堂演示或教师访问已经完成。
+
+
+## 收尾期间纳入的协作刷新与 CI 修复
+
+PR #8 原有四项浏览器回归覆盖跨标签刷新、付款撤销后“去处理”、成员加载延迟与 503 恢复。其 ae0fbee 的 [Windows 检查](https://github.com/Delovue/hezhang/actions/runs/41279569608) 有一项失败：收款人拒绝付款后，付款人的新额度尚未加载，仍能打开登记窗口，合法金额被旧额度误判。角色丁通过 trace 与受控延迟测试复现，d1d0248 使两个付款入口在活动／成员／余额／建议加载完成且无错误时才开放；修复前回归失败，修复后协作与结算 8 项通过。此修复同步回原 PR #8，并纳入最终 e66c6c2 的本机 345／66／24 项全量验收。没有通过加长断言超时或自动重试掩盖问题。

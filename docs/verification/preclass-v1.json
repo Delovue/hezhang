@@ -6,14 +6,14 @@
   "local_acceptance": "passed",
   "classroom_demo": "pending",
   "classroom_submission_identity_and_teacher_access": "deferred_by_user_to_classroom_submission",
-  "started_at": "2026-11-01T06:08:56.763693+00:00",
-  "finished_at": "2026-11-01T06:12:49.444627+00:00",
+  "started_at": "2026-11-01T06:21:08.742575+00:00",
+  "finished_at": "2026-11-01T06:25:06.809723+00:00",
   "environment": {
     "python": "3.12.13",
     "node": "v22.12.0",
     "npm": "10.9.0",
     "platform": "Windows-11-10.0.26200-SP0",
-    "commit": "4e829ddc05cddb69df6f34a639df8d6191fe39c5",
+    "commit": "e66c6c20e4dfe4f41b021575d0ca97d65a852622",
     "dirty": false,
     "lockfiles_sha256": {
       "backend/uv.lock": "f4887f0b7e09e5eb4bf84ec6fa4e368fb98001ba33258de59696920716ae0202",
@@ -22,7 +22,7 @@
   },
   "source_trees": {
     "backend": "729baa1845981025a4aa20f8ef1febebe01c132a",
-    "frontend": "207686db7935cbd829f250f15ea3a67e69e55630",
+    "frontend": "d73960f89fd897bb16bb68298bee60485c2b15d0",
     "scripts": "f78795537255fc524f13e2041fb93d95a485563d",
     ".github": "0c58923c2ddcde785708d20fa1be6ab54952eafd"
   },
@@ -38,13 +38,13 @@
       "name": "backend-lint",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 0.297
+      "duration_seconds": 0.141
     },
     {
       "name": "backend-format",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 0.14
+      "duration_seconds": 0.125
     },
     {
       "name": "tooling-lint",
@@ -62,43 +62,43 @@
       "name": "migrate",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 1.688
+      "duration_seconds": 0.906
     },
     {
       "name": "migration-check",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 0.89
+      "duration_seconds": 0.891
     },
     {
       "name": "backend-tests",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 126.016
+      "duration_seconds": 123.328
     },
     {
       "name": "frontend-build",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 8.89
+      "duration_seconds": 8.141
     },
     {
       "name": "frontend-tests",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 1.422
+      "duration_seconds": 1.375
     },
     {
       "name": "browser-tests",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 84.875
+      "duration_seconds": 94.766
     },
     {
       "name": "http-restart",
       "status": "passed",
       "exit_code": 0,
-      "duration_seconds": 8.172
+      "duration_seconds": 8.109
     }
   ],
   "backend": {
@@ -107,8 +107,8 @@
     "failures": "0",
     "skipped": "0",
     "tests": "345",
-    "time": "121.116",
-    "timestamp": "2026-11-01T14:09:03.518748+08:00",
+    "time": "119.314",
+    "timestamp": "2026-11-01T14:21:13.734059+08:00",
     "hostname": "LAPTOP-699CF9K6"
   },
   "coverage": {
@@ -127,9 +127,9 @@
     "numPendingTests": 0
   },
   "browser": {
-    "startTime": "2026-11-01T06:11:17.385Z",
-    "duration": 83861.71800000001,
-    "expected": 19,
+    "startTime": "2026-11-01T06:23:24.797Z",
+    "duration": 93874.54400000001,
+    "expected": 24,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
@@ -142,7 +142,7 @@
     "python": "3.12.13"
   },
   "demo_serve": {
-    "source_commit": "4e829dd",
+    "source_commit": "e66c6c2",
     "command": "course.py prepare + serve",
     "checks": [
       "frontend_html",
@@ -182,17 +182,33 @@
     "performed_by": "Codex visual inspection; not classroom projection"
   },
   "report_sha256": {
-    "summary.json": "dc232dc100afc03078e65e8162aac8b438ac8cf240aa96b521a58d75d623bc3f",
-    "backend.xml": "d03973c86923548bf4a4eb57f94d7339b1e300c0a0afd8ad70794d40e45dd047",
-    "frontend.json": "1423cc3166e4f850d51185745101b3f4b21393840695d40d2a3b228a47ba2328",
-    "browser.json": "e16381e733bc65637a7ad96b44b2fbbc7681acdac1b5b977382a863422248f07",
-    "coverage.json": "1a52c173ff593eaf510f78a54adefcaa46dba586d796c51134fee50ff9b8fe15",
-    "http-restart.log": "0c7d69a7528053f032d8a0a54b555b6e8f6cf6e47c98dd499c885620e68e9f09"
+    "summary.json": "40fb31941f76ef470f311ef8f84b2323eff32d0bdf6d2451b000012600739e31",
+    "backend.xml": "d8d6712ec5e4101d261579563fd292b23b9b4022c398d13836746245bf03c6e8",
+    "frontend.json": "fab4515c1404463721af0fe3117157b7572929a7f9b27de7b5b4531beec46d5a",
+    "browser.json": "c43f4f4a11e3fdad8474896a89df53cd20d9c05d397fb8316cd452702d808e41",
+    "coverage.json": "843c3180813362aa263c8b283936ca2a008b215043f821c663f7d1b3764243f4",
+    "http-restart.log": "da6fcba1ec15b5bdfce09ce6b9b101205334064ba8accd633356a64e15ce162c"
+  },
+  "initial_acceptance": {
+    "commit": "4e829dd",
+    "backend": 345,
+    "unit": 66,
+    "browser": 19,
+    "status": "passed",
+    "superseded_by": "final integration including PR8"
+  },
+  "pr8_ci_repair": {
+    "failed_run": 41279569608,
+    "failed_head": "ae0fbee",
+    "repair_commit": "d1d0248",
+    "root_cause": "payment entry opened while stale balances were refreshing after rejection",
+    "red_regression": "payment entry enabled while delayed balance response pending",
+    "green_targeted_browser_tests": 8
   },
   "screenshots_sha256": {
-    "activity-overview.png": "4b6623d4d19cdc547dc1767bf052bbf6b55eb24ad491f3e1816116724b477ff4",
-    "history-desktop.png": "f031f697ea3567390632d40f86d8262a7dc6082a8331c80554b661c68ddb64db",
-    "settlement-desktop.png": "abc74204750af38ef9754973a200d04290f453dc76a7404ec1c7f70655ad245d",
-    "settlement-mobile.png": "8eb2c61d4603f826c01b700d70015ee7928dffdb024d7e90dc65aacae8720bb2"
+    "activity-overview.png": "ac9a6236039cd7d0565fef6a01a4e2bd1f8342773f93c5226617e3efd126999c",
+    "history-desktop.png": "25e9dd600923367f10257e0c1ad711c512e4d8d71cfb84cde11e83c31c309260",
+    "settlement-desktop.png": "3be6ed4bf9fdb437bb2494d1ef361c641953a60e425cc0e03abef5b4ed590290",
+    "settlement-mobile.png": "3fb9d756072e3f73874aa7e3ea015510b9f42b4da2855b9b0f948fbc610d23b9"
   }
 }
