@@ -52,7 +52,7 @@ function close() { if (!busy.value) { emit('update:modelValue', false); emit('re
         <label class="form-field">收款人<select v-model="payee" aria-label="收款人"><option v-for="row in receivers" :key="row.member_id" :value="row.member_id">{{ members.find(m => m.id === row.member_id)?.display_name }} · 可收 ¥ {{ formatCents(row.available_in_cents) }}</option></select></label>
         <label class="form-field payment-amount">付款金额（元）<input v-model="amount" inputmode="decimal" required /></label>
       </fieldset>
-      <p class="field-help">我还可登记付出 ¥ {{ formatCents(own?.available_out_cents || 0) }}。可填写部分金额。</p>
+      <p class="field-help">{{ ready ? `我还可登记付出 ¥ ${formatCents(own?.available_out_cents || 0)}。可填写部分金额。` : '正在更新可登记额度…' }}</p>
       <div class="dialog-actions"><el-button :disabled="busy" @click="close">{{ pending ? '关闭并核对记录' : '取消' }}</el-button><el-button type="primary" native-type="submit" :loading="busy" :disabled="!ready || activity.status !== 'SETTLING'">{{ pending ? '重试原付款' : '提交付款登记' }}</el-button></div>
     </form>
   </el-dialog>
