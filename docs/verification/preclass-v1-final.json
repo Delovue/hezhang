@@ -1,13 +1,17 @@
 {
   "release": "v1.0.0",
-  "purpose": "合入 PR #8 最终代码（24df689）后，在发布分支合并提交上重新执行完整本机验收；替代 preclass-v1.json 中基于 e66c6c2 的结果作为最终发布证据。",
+  "purpose": "v1.0.0 发布代码的完整本机验收：合入 PR #8 最终代码，并修复 Windows CI 刷新超时（列表与活动信息并行加载）后，在干净工作树上执行全部 11 阶段；替代 preclass-v1.json（e66c6c2）与 5f652de 两轮结果作为最终发布证据。",
+  "previous_runs": {
+    "e66c6c2": "345/66/24 passed",
+    "5f652de": "345/66/26 passed"
+  },
   "acceptance_owner": "role_d",
   "scope": "local_preclass",
   "classroom_demo": "pending",
-  "commit": "5f652de13033eea47ab4a75c4bd3c953e624dcca",
+  "commit": "5264b5609b1cf55f4266ed52d8d85132d8b7ec55",
   "dirty": false,
-  "started_at": "2026-11-01T08:40:40.435485+00:00",
-  "finished_at": "2026-11-01T08:48:51.335136+00:00",
+  "started_at": "2026-11-02T08:55:57.135544+00:00",
+  "finished_at": "2026-11-02T09:03:48.267130+00:00",
   "environment": {
     "python": "3.12.15",
     "node": "v24.16.0",
@@ -92,7 +96,7 @@
     "failed": 0
   },
   "browser": {
-    "expected": 26,
+    "expected": 27,
     "unexpected": 0,
     "skipped": 0,
     "flaky": 0
@@ -105,11 +109,17 @@
     "total": 3,
     "failed": 0
   },
+  "ci": {
+    "commit": "5264b56",
+    "frontend_windows": "success",
+    "frontend_ubuntu": "success",
+    "run": "https://github.com/Delovue/hezhang/actions/runs/41416649289"
+  },
   "report_sha256": {
-    "summary.json": "f1f5a2247fe8c95de7c114e8e323454c7ff52aebc8f67604d34956a4f6cfba3e",
-    "backend.xml": "6395b4c00fd2ab363f16a6551f51e93d4a6f59e8575f6457b7b61e452ad14ffa",
-    "coverage.json": "5a0d9ac73e41843cec82548d2301cf89d984b635d935cb36532a5a5e344f4609",
-    "frontend.json": "095c74635c1cf70b99b985fbca3b432c3738d7f65534fc31b0feb46bec0b1f3c",
-    "browser.json": "22e27d8ccbc77427aefc40fb100ca0d54d58314d06d492a35d3db440f039ff60"
+    "summary.json": "802fa7e1a1226e79acd5a2de8afc3509b0e00e78faff4f83835d934d629d31b3",
+    "backend.xml": "f6ef3b0d7102cce67d686adb777bf27c4d5bae2a8d38cfa29923a2428acfb0e2",
+    "coverage.json": "d41d87d14adf2a692865fc782b1d92b86db765d73472ab0fabe2533083e44119",
+    "frontend.json": "a7cc9719bd7c71b255d51ffe37f817ed3e4e7def20b60ada6ccd9853e8f1092e",
+    "browser.json": "d48b2c0c8c33d370b0bf7b185978c116f757155c4fe1538291f370f54bcdbebc"
   }
 }
