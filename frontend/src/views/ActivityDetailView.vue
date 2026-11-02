@@ -45,7 +45,10 @@ const budgetProgress = computed(() => {
   return Math.min(100, Math.round(statistics.value.total_spent_cents / statistics.value.budget_cents * 100))
 })
 
-/** panels 为 false 时只刷新活动信息和右侧摘要：刚切换出的标签面板挂载时已自行加载，不必再请求一遍。 */
+/**
+ * panels 为 false 时只刷新活动信息和右侧摘要：刚切换出的标签面板挂载时已自行加载，不必再请求一遍。
+ * 刷新通知在请求发出前就递增，让列表、摘要与活动信息并行加载；录入仍由 entryReady 等待活动与成员就绪。
+ */
 async function load(panels = true) {
   if (!session.authenticated) return
   const currentRequest = ++requestNumber
@@ -54,6 +57,8 @@ async function load(panels = true) {
   if (id === null) { activity.value = null; missing.value = true; loading.value = false; error.value = '活动地址无效'; return }
   controller = new AbortController()
   const signal = controller.signal
+  summaryToken.value++
+  if (panels) refreshToken.value++
   loading.value = true
   error.value = ''
   missing.value = false
@@ -73,8 +78,6 @@ async function load(panels = true) {
   if (report.status === 'fulfilled') statistics.value = report.value
   else if (!isCancelled(report.reason)) { statistics.value = null; statisticsError.value = errorMessage(report.reason) }
   loading.value = false
-  summaryToken.value++
-  if (panels) refreshToken.value++
 }
 
 async function copyInvite() {
