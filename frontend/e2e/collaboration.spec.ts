@@ -224,3 +224,28 @@ test('switching to another tab loads its list once while the summary still refre
   await page.waitForLoadState('networkidle')
   expect(lists).toHaveLength(1)
 })
+
+test('lists refresh in parallel with a slow activity reload instead of waiting for it', async ({ page, request }) => {
+  const activity = await sharedActivity(page, request)
+  await addExpense(request, activity, activity.guestId)
+  let release!: () => void, received!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const requested = new Promise<void>(resolve => { received = resolve })
+  const detailUrl = new RegExp(`/api/v1/activities/${activity.id}$`)
+  await page.route(detailUrl, async route => {
+    const response = await route.fetch()
+    received()
+    await gate
+    await route.fulfill({ response })
+  })
+  try {
+    await Promise.all([requested, page.getByRole('button', { name: '刷新', exact: true }).click()])
+    await expect(page.locator('.expense-card')).toHaveCount(1)
+    // 成员名单随活动信息一起返回；此前新加入的成员会短暂显示为占位名称。
+    await expect(page.locator('.own-card')).toContainText('¥ 5.00')
+    await expect(page.getByRole('button', { name: '新增费用', exact: true })).toBeDisabled()
+  } finally { release() }
+  await expect(page.locator('.own-card')).toContainText('付给小李 ¥ 5.00')
+  await expect(page.getByTestId('total-spent')).toHaveText('¥ 10.00')
+  await expect(page.getByRole('button', { name: '新增费用', exact: true })).toBeEnabled()
+})
